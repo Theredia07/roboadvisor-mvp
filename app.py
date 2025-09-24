@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
+import yfinance as yf
+from datetime import date
 
-# Importamos el "motor" de la carpeta robo.py
+# Motor
 from robo import (
     PortfolioConfig,
     simulate_dca,
@@ -9,10 +11,14 @@ from robo import (
     profile_to_weights,
 )
 
-# ──────────────────────────────────────────────────────────────────────────────
-# CONFIG GENERAL
-# ──────────────────────────────────────────────────────────────────────────────
-st.set_page_config(page_title="TuRobo — Simulador de Inversión", page_icon="💼", layout="centered")
+# ─────────────────────────────────────────────────────────────────────
+# CONFIG
+# ─────────────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="TuRobo — Simulador de Inversión",
+    page_icon="💼",
+    layout="centered"
+)
 
 st.title("💼 TuRobo — Simulador de Inversión (Demo)")
 st.write(
@@ -21,9 +27,23 @@ st.write(
 )
 st.info("**Demo educativa** — Sin conexión a broker. Para aprender cómo se comportaría una cartera a lo largo del tiempo.")
 
-# ──────────────────────────────────────────────────────────────────────────────
-# ONBOARDING (4 preguntas) → sugiere perfil
-# ──────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────
+# UTIL: verificación de histórico
+# ─────────────────────────────────────────────────────────────────────
+def tiene_historico(ticker: str, start: str) -> bool:
+    """
+    Devuelve True si Yahoo Finance tiene datos para el ticker desde 'start'.
+    """
+    try:
+        df_ = yf.download(ticker.strip(), start=start.strip() or "2018-01-01",
+                          progress=False, auto_adjust=True)
+        return not df_.empty
+    except Exception:
+        return False
+
+# ─────────────────────────────────────────────────────────────────────
+# ONBOARDING + CONTROLES
+# ─────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.header("🧭 Onboarding rápido")
     edad = st.number_input("Tu edad", min_value=18, max_value=90, value=18, step=1)
@@ -31,35 +51,52 @@ with st.sidebar:
     tolerancia = st.slider("¿Qué tanto soportas subidas/bajadas?", 1, 10, 7)
     aportacion = st.number_input("Aportación mensual (€)", 1, 10000, 300, step=10)
 
-    # Rebalanceo
     rebalanceo_opt = st.selectbox("Rebalanceo", ["Cada 6 meses", "Cada 12 meses", "Sin rebalanceo"], index=0)
     rb = 6 if rebalanceo_opt == "Cada 6 meses" else (12 if rebalanceo_opt == "Cada 12 meses" else 0)
 
-    # Sugerencia de perfil muy simple
+    # Sugerencia simple de perfil
     if horizonte >= 5 and tolerancia >= 7:
-        perfil = "Agresivo"
+        perfil_sugerido = "Agresivo"
     elif horizonte >= 3 and tolerancia >= 5:
-        perfil = "Moderado"
+        perfil_sugerido = "Moderado"
     else:
-        perfil = "Conservador"
-    st.success(f"**Perfil sugerido:** {perfil}")
+        perfil_sugerido = "Conservador"
+
+    # Usuario puede cambiarlo
+    opciones = ["Conservador", "Moderado", "Agresivo"]
+    idx_sugerido = opciones.index(perfil_sugerido)
+    perfil = st.selectbox("Perfil (puedes cambiarlo)", opciones, index=idx_sugerido)
+    st.success(f"Perfil sugerido: {perfil_sugerido} • Perfil elegido: **{perfil}**")
 
     st.divider()
     st.subheader("ETFs por defecto (puedes cambiarlos)")
-    # Por defecto usamos tickers que funcionan en Yahoo Finance:
-    # Acciones globales (Vanguard FTSE All-World Acc) y Bonos globales (EUR Hedged, Acc)
+    # Defaults que funcionan en Yahoo Finance:
     eq_ticker = st.text_input("Acciones (recomendado: VWCE.DE)", "VWCE.DE")
-    bd_ticker = st.text_input("Bonos (recomendado: AGGH.MI)", "AGGH.MI")
+    bd_ticker = st.text_input("Bonos (recomendado: AGGU.L)", "AGGU.L")
 
-    start = st.text_input("Inicio histórico (YYYY-MM-DD)", "2015-01-01")
+    # Por defecto 2018 porque muchos bonos tienen histórico desde ~2017/2018
+    start = st.text_input("Inicio histórico (YYYY-MM-DD)", "2018-01-01")
 
 run = st.button("▶️ Simular cartera")
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────
 # SIMULACIÓN
-# ──────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────
 if run:
-    # Convertimos perfil → pesos objetivo (usa tabla de robo.py)
+    hoy = date.today().isoformat()
+
+    # Validar histórico antes de simular
+    ok_eq = tiene_historico(eq_ticker, start)
+    ok_bd = tiene_historico(bd_ticker, start)
+
+    if not ok_eq or not ok_bd:
+        if not ok_eq:
+            st.warning(f"ℹ️ No hay registro histórico para **{eq_ticker}** desde **{start}** hasta **{hoy}**.")
+        if not ok_bd:
+            st.warning(f"ℹ️ No hay registro histórico para **{bd_ticker}** desde **{start}** hasta **{hoy}**.")
+        st.stop()
+
+    # Perfil elegido → pesos
     w_eq, w_bd = profile_to_weights(perfil)
 
     cfg = PortfolioConfig(
@@ -69,25 +106,25 @@ if run:
         bond_weight=w_bd,
         monthly_contribution=float(aportacion),
         rebalance_months=rb,
-        start=start.strip() or "2015-01-01",
+        start=start.strip() or "2018-01-01",
         end=None,
     )
 
     with st.spinner("Descargando datos y simulando..."):
         try:
             df, prices = simulate_dca(cfg)
-            # Si llega vacío, levantamos un error comprensible
             if df is None or df.empty:
-                raise ValueError("No hay datos para los tickers/fechas seleccionados.")
+                st.warning(f"ℹ️ No hay datos suficientes entre **{start}** y **{hoy}** para estos tickers.")
+                st.stop()
             st.success("✅ Simulación completa")
         except Exception as e:
             st.error("❌ No se pudo simular la cartera. Revisa los tickers o inténtalo más tarde.")
             st.caption(str(e))
             st.stop()
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # KPIs y métricas
-    # ──────────────────────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────
+    # KPIs / MÉTRICAS
+    # ─────────────────────────────────────────────────────────────────
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Resumen")
@@ -104,33 +141,50 @@ if run:
         st.write(f"**Max Drawdown** (máx. caída): {stats['MaxDD']*100:.2f}%")
         st.write(f"**Sharpe (rf≈0)**: {stats['Sharpe']:.2f}")
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # GRÁFICOS (import tardío para acelerar carga)
-    # ──────────────────────────────────────────────────────────────────────────
-    import matplotlib.pyplot as plt
+    # ─────────────────────────────────────────────────────────────────
+    # GRÁFICOS INTERACTIVOS (Plotly)
+    # ─────────────────────────────────────────────────────────────────
+    import plotly.express as px
 
-    st.subheader("Evolución de la cartera")
-    fig, ax = plt.subplots()
-    df[["equity_value", "bond_value"]].plot(ax=ax)
-    ax.set_ylabel("€")
-    ax.set_title("Componentes: acciones (equity) y bonos (bond)")
-    st.pyplot(fig)
+    # Asegurar columna 'date' para el eje X
+    df_plot = df.copy()
+    df_plot["date"] = df_plot.index
 
-    fig2, ax2 = plt.subplots()
-    df["total"].plot(ax=ax2)
-    ax2.set_ylabel("€")
-    ax2.set_title("Valor total de la cartera")
-    st.pyplot(fig2)
+    st.subheader("Evolución de la cartera (interactiva)")
+
+    # 1) Componentes: acciones y bonos
+    fig_comp = px.line(
+        df_plot,
+        x="date",
+        y=["equity_value", "bond_value"],
+        labels={"value": "€", "date": "Fecha", "variable": "Componente"},
+        title="Componentes: acciones (equity) y bonos (bond)",
+    )
+    fig_comp.update_traces(mode="lines+markers",
+                           hovertemplate="%{x|%Y-%m-%d}<br>%{fullData.name}: €%{y:.2f}")
+    st.plotly_chart(fig_comp, use_container_width=True)
+
+    # 2) Total de la cartera
+    fig_tot = px.line(
+        df_plot,
+        x="date",
+        y="total",
+        labels={"total": "€", "date": "Fecha"},
+        title="Valor total de la cartera",
+    )
+    fig_tot.update_traces(mode="lines+markers",
+                          hovertemplate="%{x|%Y-%m-%d}<br>Total: €%{y:.2f}")
+    st.plotly_chart(fig_tot, use_container_width=True)
 
     st.subheader("Datos (últimos 12 meses)")
     st.dataframe(df.tail(12))
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────
 # GLOSARIO / AYUDA
-# ──────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────
 st.divider()
 st.subheader("📖 Cómo leer los resultados")
-with st.expander("Explicación de métricas y valores"):
+with st.expander("Explicación de métrricas y valores"):
     st.markdown("""
 - **Valor de la cartera (Total):** lo que tendrías hoy si hubieras invertido cada mes.
 - **Aportado:** el dinero que tú pusiste (ej. 300 € × número de meses).
@@ -142,6 +196,7 @@ with st.expander("Explicación de métricas y valores"):
 - **Volatilidad:** cuánto sube y baja la cartera. Más volatilidad = más riesgo.
 - **Max Drawdown:** la mayor caída histórica desde un máximo hasta un mínimo.
 - **Sharpe:** rentabilidad ajustada al riesgo (cuanto más alto, mejor).
+- **TIP:** si no ves datos, prueba con una fecha de inicio desde **2018-01-01**.
 """)
 
 st.divider()
