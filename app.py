@@ -40,8 +40,13 @@ cfg = PortfolioConfig(
 run = st.button("▶️ Simular cartera")
 if run:
     with st.spinner("Descargando datos y simulando..."):
-        df, prices = simulate_dca(cfg)
-    st.success("Simulación completa")
+        try:
+            df, prices = simulate_dca(cfg)
+            st.success("Simulación completa")
+        except Exception as e:
+            st.error("❌ No se pudo simular la cartera. Posibles causas: ticker incorrecto o sin datos.")
+            st.caption(str(e))
+            st.stop()
 
     col1, col2 = st.columns(2)
     with col1:
