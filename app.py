@@ -13,62 +13,83 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
 
-# ───────────────────────────────── CONFIG ─────────────────────────────────
+# ───────────────────────────── CONFIG ─────────────────────────────
 BRAND_NAME = "Fincontrol"
+LOGO_WORDMARK = "assets/fincontrol_wordmark.svg"  # asegúrate de subirlo
+FEEDBACK_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfKW6vS86U0hUh7hlLhJM6XUJwaSy7Ci_ZpxDGtqwUu55OEQQ/viewform?usp=header"
+
 DEFAULTS = {
-    "equity_ticker": "VWRA.L",  # ETF global acciones (LSE)
-    "bond_ticker": "AGGU.L",    # ETF global bonos (LSE)
+    "equity_ticker": "VWRA.L",  # ETF global acciones (LSE, USD)
+    "bond_ticker": "AGGU.L",    # ETF global bonos (LSE, USD)
     "crypto_ticker": "BTC-USD",
     "start": "2018-01-01",
 }
-FEEDBACK_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfKW6vS86U0hUh7hlLhJM6XUJwaSy7Ci_ZpxDGtqwUu55OEQQ/viewform?usp=header"
 
 st.set_page_config(page_title=f"{BRAND_NAME} — Simulador de Inversión", page_icon="💼", layout="wide")
 
-# ─────────────────────────── TEXTOS (ES/EN) ───────────────────────────
+# ───────────────────────────── TEXTOS ─────────────────────────────
 LANGS = {
     "ES": {
-        "title": f"{BRAND_NAME} — Simulador de Inversión (Demo)",
-        "intro": "Simula aportes mensuales (DCA) en acciones/ETFs, bonos y cripto con rebalanceo periódico. "
-                 "Es **educativo**: no es asesoramiento financiero ni mueve dinero real.",
-        "demo_note": "Demo educativa — Sin conexión a broker. Aprende cómo podría comportarse una cartera en el tiempo.",
+        "slogan": "Tu dinero, bajo control.",
         "language": "Idioma", "spanish": "Español", "english": "English",
         "currency": "Moneda", "eur": "EUR (€)", "usd": "USD ($)",
-        "sidebar_header": "🧭 Onboarding rápido", "darkmode": "Tema oscuro",
-        "age": "Tu edad", "horizon": "¿Cuántos años sin tocar la inversión?",
-        "tolerance": "¿Qué tanto soportas subidas/bajadas?", "tol_help": "1 = Nada • 10 = Totalmente",
-        "monthly": "Aportación mensual", "monthly_help": "En la moneda seleccionada.",
-        "rebalance": "Rebalanceo (cada X meses)", "reb_opt_none": "Sin rebalanceo",
-        "profiles_header": "Perfiles & Pesos", "choose_profile": "Perfil sugerido (editable)",
-        "custom_weights": "Ajusta pesos (suman 100%)", "equity_weight": "Acciones (%)",
-        "bond_weight": "Bonos (%)", "crypto_weight": "Cripto (%)",
+        "darkmode": "Tema oscuro",
+        "demo_note": "Demo educativa — Sin conexión a broker. Aprende cómo podría comportarse una cartera en el tiempo.",
+        "sidebar_header": "🧭 Onboarding rápido",
+        "age": "Tu edad",
+        "horizon": "¿Cuántos años sin tocar la inversión?",
+        "tolerance": "¿Qué tanto soportas subidas/bajadas?",
+        "tol_help": "1 = Nada • 10 = Totalmente",
+        "monthly": "Aportación mensual",
+        "monthly_help": "Introduce la aportación en la moneda seleccionada.",
+        "rebalance": "Rebalanceo (cada X meses)",
+        "reb_opt_none": "Sin rebalanceo",
+        "profiles_header": "Perfiles & Pesos",
+        "choose_profile": "Perfil sugerido (editable)",
+        "custom_weights": "Ajusta pesos (suman 100%)",
+        "equity_weight": "Acciones (%)",
+        "bond_weight": "Bonos (%)",
+        "crypto_weight": "Cripto (%)",
         "assets_header": "Activos por defecto (cambiables)",
-        "equity_label": "Acciones / ETF (p.ej., VWRA.L)", "bond_label": "Bonos / ETF (p.ej., AGGU.L)",
-        "crypto_enable": "Incluir cripto", "crypto_label": "Cripto (p.ej., BTC-USD)",
-        "start_label": "Inicio histórico (YYYY-MM-DD)", "simulate": "▶️ Simular cartera",
+        "equity_label": "Acciones / ETF (p.ej., VWRA.L)",
+        "bond_label": "Bonos / ETF (p.ej., AGGU.L)",
+        "crypto_enable": "Incluir cripto",
+        "crypto_label": "Cripto (p.ej., BTC-USD)",
+        "start_label": "Inicio histórico (YYYY-MM-DD)",
+        "suggest_shortcut": "Atajos de sugerencias",
+        "suggest_eq": "Sugeridos (Acciones)",
+        "suggest_bd": "Sugeridos (Bonos)",
+        "fill": "Rellenar",
+        "simulate": "▶️ Simular cartera",
         "no_hist": "No hay datos para **{ticker}** desde **{start}** hasta **{today}**.",
+        "try_alt": "Alternativas recomendadas",
+        "use_date": "Usar fecha sugerida",
+        "cant_simulate": "No pudimos simular porque faltan datos para algunos activos o desde la fecha elegida.",
         "no_data_range": "No hay datos suficientes entre **{start}** y **{today}** para estos activos.",
-        "sim_done": "Simulación completa", "sim_fail": "No se pudo simular. Revisa tickers o intenta luego.",
+        "sim_done": "Simulación completa",
         "summary": "Resumen", "final_value": "Valor final", "contributed": "Aportado",
-        "metrics": "Métricas", "cagr": "CAGR", "vol": "Volatilidad (anual aprox.)",
-        "maxdd": "Max Drawdown", "sharpe": "Sharpe (rf≈0)",
+        "metrics": "Métricas",
+        "cagr": "CAGR", "vol": "Volatilidad (aprox. anual)", "maxdd": "Max Drawdown", "sharpe": "Sharpe (rf≈0)",
         "risk_level": "Nivel de riesgo estimado: {level}",
-        "concentration": "Concentración (HHI) y Nº efectivo", "hhi": "HHI: {hhi:.3f} • Nº efectivo: {neff:.2f}",
-        "signals": "Señales de tendencia (MA200)", "bearish": "⚠️ {ticker} bajista (precio < MA200)",
+        "concentration": "Concentración (HHI) y Nº efectivo",
+        "hhi": "HHI: {hhi:.3f} • Nº efectivo: {neff:.2f}",
+        "signals": "Señales de tendencia (MA200)",
+        "bearish": "⚠️ {ticker} bajista (precio < MA200)",
         "not_bearish": "ℹ️ {ticker} no bajista (precio ≥ MA200)",
-        "evolution": "Evolución de la cartera (interactiva)", "components_title": "Componentes por valor",
-        "total_title": "Valor total de la cartera", "date": "Fecha", "component": "Componente", "hover_total": "Total",
+        "evolution": "Evolución de la cartera (interactiva)",
+        "components_title": "Componentes por valor",
+        "total_title": "Valor total de la cartera",
+        "date": "Fecha", "component": "Componente", "hover_total": "Total",
         "last12": "Datos (últimos 12 meses)",
         "glossary": "📖 Cómo leer los resultados",
         "glossary_text": (
             "- **DCA:** aportas una cantidad fija cada mes.\n"
-            "- **Total:** lo que tendrías hoy con esas aportaciones.\n"
-            "- **Aportado:** suma de tus aportes.\n"
+            "- **Total:** lo que tendrías hoy con esos aportes.\n"
             "- **Rebalanceo:** volver a los pesos objetivo (2/4/6/8/10/12 meses o sin).\n"
             "- **CAGR/Vol/MaxDD/Sharpe:** rendimiento y riesgo.\n"
-            "- **MA200:** media móvil 200 días (señal de tendencia simple).\n"
+            "- **MA200:** media móvil 200 días (tendencia simple).\n"
             "- **HHI/Nº efectivo:** concentración/diversificación.\n"
-            "- **Moneda:** conversiones a EUR/USD con tipos de Yahoo.\n"
+            "- **Moneda:** conversión a EUR/USD con tipos de Yahoo.\n"
             "- **TIP:** si no ves datos, prueba inicio desde **2018-01-01**."
         ),
         "table_howto_title": "Cómo leer la tabla de los últimos 12 meses",
@@ -77,39 +98,58 @@ LANGS = {
         "feedback": "📝 Feedback rápido",
         "feedback_text": "¿Qué mejorarías? Dínoslo aquí: [Formulario]({url}) *(1 min)*",
         "disclaimer": "Demo educativa. No es asesoramiento financiero ni mueve dinero real.",
-        "slogan": "Tu dinero, bajo control.",
     },
     "EN": {
-        "title": f"{BRAND_NAME} — Investment Simulator (Demo)",
-        "intro": "Simulate monthly contributions (DCA) into equities/ETFs, bonds and crypto with periodic rebalancing. "
-                 "Educational demo — not financial advice; no real money moved.",
-        "demo_note": "Educational demo — No broker connection.",
+        "slogan": "Your money, under control.",
         "language": "Language", "spanish": "Español", "english": "English",
         "currency": "Currency", "eur": "EUR (€)", "usd": "USD ($)",
-        "sidebar_header": "🧭 Quick onboarding", "darkmode": "Dark theme",
-        "age": "Your age", "horizon": "How many years without touching it?",
-        "tolerance": "How much volatility can you stand?", "tol_help": "1 = None • 10 = Fully",
-        "monthly": "Monthly contribution", "monthly_help": "In the selected currency.",
-        "rebalance": "Rebalancing (every X months)", "reb_opt_none": "No rebalancing",
-        "profiles_header": "Profiles & Weights", "choose_profile": "Suggested profile (editable)",
-        "custom_weights": "Adjust weights (sum to 100%)", "equity_weight": "Equities (%)",
-        "bond_weight": "Bonds (%)", "crypto_weight": "Crypto (%)",
+        "darkmode": "Dark theme",
+        "demo_note": "Educational demo — No broker connection.",
+        "sidebar_header": "🧭 Quick onboarding",
+        "age": "Your age",
+        "horizon": "How many years without touching it?",
+        "tolerance": "How much volatility can you stand?",
+        "tol_help": "1 = None • 10 = Fully",
+        "monthly": "Monthly contribution",
+        "monthly_help": "Enter the contribution in the selected currency.",
+        "rebalance": "Rebalancing (every X months)",
+        "reb_opt_none": "No rebalancing",
+        "profiles_header": "Profiles & Weights",
+        "choose_profile": "Suggested profile (editable)",
+        "custom_weights": "Adjust weights (sum to 100%)",
+        "equity_weight": "Equities (%)",
+        "bond_weight": "Bonds (%)",
+        "crypto_weight": "Crypto (%)",
         "assets_header": "Default assets (changeable)",
-        "equity_label": "Equities / ETF (e.g., VWRA.L)", "bond_label": "Bonds / ETF (e.g., AGGU.L)",
-        "crypto_enable": "Include crypto", "crypto_label": "Crypto (e.g., BTC-USD)",
-        "start_label": "Start date (YYYY-MM-DD)", "simulate": "▶️ Run simulation",
+        "equity_label": "Equities / ETF (e.g., VWRA.L)",
+        "bond_label": "Bonds / ETF (e.g., AGGU.L)",
+        "crypto_enable": "Include crypto",
+        "crypto_label": "Crypto (e.g., BTC-USD)",
+        "start_label": "Start date (YYYY-MM-DD)",
+        "suggest_shortcut": "Suggestion shortcuts",
+        "suggest_eq": "Suggested (Equities)",
+        "suggest_bd": "Suggested (Bonds)",
+        "fill": "Fill",
+        "simulate": "▶️ Run simulation",
         "no_hist": "No data for **{ticker}** from **{start}** to **{today}**.",
+        "try_alt": "Recommended alternatives",
+        "use_date": "Use suggested date",
+        "cant_simulate": "We couldn't simulate because data is missing for some assets or from the chosen date.",
         "no_data_range": "Not enough data between **{start}** and **{today}** for these assets.",
-        "sim_done": "Simulation completed", "sim_fail": "Could not simulate. Check tickers or try later.",
+        "sim_done": "Simulation completed",
         "summary": "Summary", "final_value": "Final value", "contributed": "Contributed",
-        "metrics": "Metrics", "cagr": "CAGR", "vol": "Volatility (approx. annual)",
-        "maxdd": "Max Drawdown", "sharpe": "Sharpe (rf≈0)",
+        "metrics": "Metrics",
+        "cagr": "CAGR", "vol": "Volatility (approx. annual)", "maxdd": "Max Drawdown", "sharpe": "Sharpe (rf≈0)",
         "risk_level": "Estimated risk level: {level}",
-        "concentration": "Concentration (HHI) & Effective number", "hhi": "HHI: {hhi:.3f} • Effective N: {neff:.2f}",
-        "signals": "Trend signals (MA200)", "bearish": "⚠️ {ticker} bearish (price < MA200)",
+        "concentration": "Concentration (HHI) & Effective number",
+        "hhi": "HHI: {hhi:.3f} • Effective N: {neff:.2f}",
+        "signals": "Trend signals (MA200)",
+        "bearish": "⚠️ {ticker} bearish (price < MA200)",
         "not_bearish": "ℹ️ {ticker} not bearish (price ≥ MA200)",
-        "evolution": "Portfolio evolution (interactive)", "components_title": "Components by value",
-        "total_title": "Total portfolio value", "date": "Date", "component": "Component", "hover_total": "Total",
+        "evolution": "Portfolio evolution (interactive)",
+        "components_title": "Components by value",
+        "total_title": "Total portfolio value",
+        "date": "Date", "component": "Component", "hover_total": "Total",
         "last12": "Data (last 12 months)",
         "glossary": "How to read the results",
         "glossary_text": "Month-end values: Equity, Bond, Crypto, Cash and **Total** (sum).",
@@ -117,16 +157,14 @@ LANGS = {
         "feedback": "📝 Quick feedback",
         "feedback_text": "Tell us here: [Form]({url}) *(1 min)*",
         "disclaimer": "Educational demo. Not financial advice; no real money moved.",
-        "slogan": "Your money, under control.",
     },
 }
 def t(lang, key, **kwargs):
-    text = LANGS[lang][key]
-    return text.format(**kwargs) if kwargs else text
+    txt = LANGS[lang][key]
+    return txt.format(**kwargs) if kwargs else txt
 
-# ──────────────────────────── HEADER / BRAND ──────────────────────────
-LOGO_WORDMARK = "assets/fincontrol_wordmark.svg"  # súbelo a esta ruta
-# Top bar: idioma / moneda / tema
+# ────────────────────────── HEADER / BRANDING ─────────────────────────
+# Controles arriba (idioma, moneda, tema) en el sidebar
 lang = st.sidebar.selectbox(f"{t('ES','language')} / {t('EN','language')}",
                             ["ES", "EN"], index=0,
                             format_func=lambda x: LANGS[x]["spanish"] if x=="ES" else LANGS[x]["english"])
@@ -135,91 +173,258 @@ currency = st.sidebar.selectbox(t(lang, "currency"), ["EUR", "USD"], index=0,
 CURRENCY_SYMBOL = "€" if currency == "EUR" else "$"
 dark = st.sidebar.toggle(t(lang, "darkmode"), value=False)
 
-# Header pro (logo + slogan)
+# Header bonito con logo + slogan
 st.markdown(
     f"""
-    <div style="display:flex; flex-direction:column; align-items:center; gap:.4rem; margin: .6rem 0 1rem 0;">
-        <img src="{LOGO_WORDMARK}" alt="{BRAND_NAME}" style="max-width: 560px; width:60%; min-width:260px; height:auto;">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:.35rem; margin:.4rem 0 1rem 0;">
+        <img src="{LOGO_WORDMARK}" alt="{BRAND_NAME}" style="max-width:560px; width:60%; min-width:260px; height:auto;">
         <div style="font-size:1.05rem; opacity:.85;">{t(lang,'slogan')}</div>
     </div>
-    <hr style="margin: .4rem 0 1.2rem 0; opacity:.25;">
+    <hr style="margin:.4rem 0 1.2rem 0; opacity:.25;">
     """,
     unsafe_allow_html=True
 )
 st.info(t(lang, "demo_note"))
 
-# Estilos (sidebar ancho + espaciado; tema oscuro)
+# CSS para airear UI
 base_css = """
 <style>
 .block-container { max-width: 1140px; }
 section[data-testid="stSidebar"] { min-width: 340px; }
 section[data-testid="stSidebar"] * { line-height: 1.25rem; }
-.sidebar-spacer { height: 12px; }
+.sidebar-spacer { height: 10px; }
 h3, .stSubheader { border-left: 6px solid #16A34A22; padding-left: 10px; }
-div.card { background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 14px;
-           padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); margin-bottom: 12px; }
-button[kind="primary"] { border-radius: 10px; }
+div.card { background:#FFFFFF; border:1px solid #E5E7EB; border-radius:14px;
+           padding:14px 16px; box-shadow:0 1px 2px rgba(0,0,0,.04); margin-bottom:12px; }
 </style>
 """
 dark_css = """
 <style>
-html, body, [data-testid="stAppViewContainer"] { background: #0B1220 !important; color: #EEF2F6; }
-section[data-testid="stSidebar"] { background: #0F172A !important; }
-h1,h2,h3,h4,h5,h6, label, span, p { color: #EEF2F6 !important; }
-.stDataFrame tbody td, .stDataFrame thead th { color: #EEF2F6 !important; }
-h3, .stSubheader { border-left: 6px solid #16A34A55; padding-left: 10px; }
-div.card { background: #111827; border: 1px solid #1F2937; border-radius: 14px;
-           padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.3); margin-bottom: 12px; }
+html, body, [data-testid="stAppViewContainer"] { background:#0B1220 !important; color:#EEF2F6; }
+section[data-testid="stSidebar"] { background:#0F172A !important; }
+h1,h2,h3,h4,h5,h6, label, span, p { color:#EEF2F6 !important; }
+.stDataFrame tbody td, .stDataFrame thead th { color:#EEF2F6 !important; }
+h3, .stSubheader { border-left:6px solid #16A34A55; padding-left:10px; }
+div.card { background:#111827; border:1px solid #1F2937; border-radius:14px;
+           padding:14px 16px; box-shadow:0 1px 2px rgba(0,0,0,.3); margin-bottom:12px; }
 </style>
 """
 st.markdown(base_css + (dark_css if dark else ""), unsafe_allow_html=True)
 
-# ─────────────────────────── DATOS / HELPERS ─────────────────────────
+# ────────────────────────── DATOS / HELPERS ──────────────────────────
 @st.cache_data(show_spinner=False, ttl=3600)
-def yahoo_prices(ticker: str, start: str, end: str | None = None) -> pd.Series:
+def yahoo_prices(ticker, start, end=None):
     df = yf.download(ticker.strip(), start=start.strip(), end=end, progress=False, auto_adjust=True)
-    if df is None or df.empty: return pd.Series(dtype=float)
-    s = df["Close"].dropna(); s.index = pd.to_datetime(s.index); return s
+    if df is None or df.empty:
+        return pd.Series(dtype=float)
+    s = df["Close"].dropna()
+    s.index = pd.to_datetime(s.index)
+    return s
 
 @st.cache_data(show_spinner=False, ttl=86400)
-def get_currency_of_ticker(ticker: str) -> str:
+def get_currency_of_ticker(ticker):
     try:
-        info = yf.Ticker(ticker).fast_info; cur = getattr(info, "currency", None)
-        if cur: return cur
-    except Exception: pass
+        info = yf.Ticker(ticker).fast_info
+        cur = getattr(info, "currency", None)
+        if cur:
+            return cur
+    except Exception:
+        pass
     try:
-        info2 = yf.Ticker(ticker).info; cur = info2.get("currency")
-        if cur: return cur
-    except Exception: pass
+        cur = yf.Ticker(ticker).info.get("currency")
+        if cur:
+            return cur
+    except Exception:
+        pass
     return "USD"
 
-def fx_pair(src: str, dst: str) -> str | None:
+def fx_pair(src, dst):
     return None if src == dst else f"{src}{dst}=X"
 
-def convert_series_to(series: pd.Series, src_cur: str, dst_cur: str, start: str) -> pd.Series:
-    if src_cur == dst_cur: return series
-    pair = fx_pair(src_cur, dst_cur); fx = yahoo_prices(pair, start)
+def convert_series_to(series, src_cur, dst_cur, start):
+    if src_cur == dst_cur:
+        return series
+    pair = fx_pair(src_cur, dst_cur)
+    fx = yahoo_prices(pair, start) if pair else pd.Series(dtype=float)
     if fx.empty:
         st.warning(f"FX no disponible para {src_cur}->{dst_cur} ({pair}). Se muestran valores sin convertir.")
         return series
     fx = fx.reindex(series.index).ffill().bfill()
     return series * fx
 
-def has_history(ticker: str, start: str) -> bool:
-    try: return not yahoo_prices(ticker, start).empty
-    except Exception: return False
+def has_history(ticker, start):
+    try:
+        return not yahoo_prices(ticker, start).empty
+    except Exception:
+        return False
 
-# ─────────────────────────── CONTROLES (SIDEBAR) ─────────────────────
+def first_available_month(ticker):
+    """Devuelve 'YYYY-MM-01' de la primera vela mensual disponible para el ticker (o None)."""
+    try:
+        df = yf.download(ticker.strip(), period="max", interval="1mo", progress=False, auto_adjust=True)
+        if df is None or df.empty:
+            return None
+        d0 = pd.to_datetime(df.index.min())
+        return f"{d0.year:04d}-{d0.month:02d}-01"
+    except Exception:
+        return None
+
+def recommend_tickers(kind, currency):
+    """kind: 'equity' | 'bond' | 'crypto'"""
+    if kind == "equity":
+        return ["VWRA.L", "VWCE.DE", "IWDA.AS", "VT", "ACWI"]
+    if kind == "bond":
+        return ["AGGU.L", "AGGH.MI", "BNDW", "IGLO.L", "IGLA.L"]
+    if kind == "crypto":
+        return ["BTC-USD", "ETH-USD"]
+    return []
+
+# precios con posibles fechas duplicadas → obtener float seguro
+def px_at(series, d):
+    v = series.loc[d]
+    if isinstance(v, pd.Series):
+        v = v.iloc[-1]
+    return float(v)
+
+@dataclass
+class Asset:
+    ticker: str
+    role: str   # 'equity' | 'bond' | 'crypto'
+    weight: float
+    currency: str
+
+def monthly_index_union(series_list):
+    idx = None
+    for s in series_list:
+        if s is None or s.empty:
+            continue
+        m = s.resample("M").last().index
+        idx = m if idx is None else idx.union(m)
+    return pd.DatetimeIndex([]) if idx is None else idx.sort_values()
+
+def simulate_dca_multi(assets, monthly_contribution, start, end, rebalance_months, display_currency):
+    native_prices = {a.ticker: yahoo_prices(a.ticker, start, end) for a in assets}
+    conv_prices = {}
+    for a in assets:
+        s = native_prices[a.ticker]
+        conv_prices[a.ticker] = convert_series_to(s, a.currency, display_currency, start) if not s.empty else s
+    if all(s.empty for s in conv_prices.values()):
+        return pd.DataFrame(), conv_prices
+
+    m_idx = monthly_index_union([s for s in conv_prices.values()])
+    if len(m_idx) == 0:
+        return pd.DataFrame(), conv_prices
+
+    prices_m = {t: s.reindex(m_idx).ffill() for t, s in conv_prices.items()}
+    shares = {a.ticker: 0.0 for a in assets}
+    cash = 0.0
+    target_w = {a.ticker: a.weight for a in assets}
+    role_by_ticker = {a.ticker: a.role for a in assets}
+    hist, months_since_reb = [], 0
+
+    for d in m_idx:
+        # aporte del mes
+        cash += monthly_contribution
+        # compra proporcional a pesos objetivo
+        for a in assets:
+            t = a.ticker
+            px = px_at(prices_m[t], d)
+            if px > 0:
+                alloc = monthly_contribution * target_w[t]
+                shares[t] += alloc / px
+
+        months_since_reb += 1
+        values = {t: shares[t] * px_at(prices_m[t], d) for t in shares}
+        port_value = sum(values.values()) + cash
+
+        # rebalanceo
+        if rebalance_months and months_since_reb >= rebalance_months and port_value > 0:
+            target_values = {t: target_w[t] * port_value for t in shares}
+            for t in shares:
+                px = px_at(prices_m[t], d)
+                if px > 0:
+                    diff = target_values[t] - values[t]
+                    shares[t] += diff / px
+            cash = 0.0
+            months_since_reb = 0
+            values = {t: shares[t] * px_at(prices_m[t], d) for t in shares}
+            port_value = sum(values.values()) + cash
+
+        row = {"date": d, "cash": cash, "total": port_value}
+        for t, val in values.items():
+            role = role_by_ticker[t]
+            if role == "equity":
+                row["equity_value"] = val
+            elif role == "bond":
+                row["bond_value"] = val
+            elif role == "crypto":
+                row["crypto_value"] = val
+        hist.append(row)
+
+    df = pd.DataFrame(hist).set_index("date")
+    for c in ["equity_value", "bond_value", "crypto_value"]:
+        if c not in df.columns:
+            df[c] = 0.0
+    return df, prices_m
+
+def perf_stats(series):
+    r = series.pct_change().dropna()
+    if r.empty:
+        return {"CAGR": 0.0, "Vol": 0.0, "MaxDD": 0.0, "Sharpe": 0.0}
+    years = (series.index[-1] - series.index[0]).days / 365.25
+    cagr = (series.iloc[-1] / series.iloc[0]) ** (1 / years) - 1 if years > 0 else 0.0
+    vol = r.std() * np.sqrt(12)
+    maxdd = (series / series.cummax() - 1.0).min()
+    sharpe = (r.mean() * 12) / vol if vol > 0 else 0.0
+    return {"CAGR": cagr, "Vol": vol, "MaxDD": maxdd, "Sharpe": sharpe}
+
+def risk_level(vol, maxdd):
+    if vol < 0.08 and maxdd > -0.15: return "Bajo / Low"
+    if vol <= 0.15 or maxdd >= -0.30: return "Medio / Medium"
+    return "Alto / High"
+
+def hhi_and_neff(weights):
+    w = np.array([max(0.0, v) for v in weights.values()], dtype=float)
+    if w.sum() <= 0:
+        return 0.0, 0.0
+    w = w / w.sum()
+    hhi = float(np.sum(w ** 2))
+    neff = float(1.0 / hhi) if hhi > 0 else 0.0
+    return hhi, neff
+
+def trend_is_bearish(ticker, start, display_currency):
+    s = yahoo_prices(ticker, start)
+    if s.empty or len(s) < 200:
+        return None
+    src_cur = get_currency_of_ticker(ticker)
+    s = convert_series_to(s, src_cur, display_currency, start)
+    if len(s) < 200:
+        return None
+    ma200 = s.rolling(200).mean()
+    return bool(s.iloc[-1] < ma200.iloc[-1])
+
+# ────────────────────────── CONTROLES (SIDEBAR) ──────────────────────
+# Estado inicial para poder rellenar con botones
+for k, v in {
+    "eq_ticker": DEFAULTS["equity_ticker"],
+    "bd_ticker": DEFAULTS["bond_ticker"],
+    "cr_ticker": DEFAULTS["crypto_ticker"],
+    "start_date": DEFAULTS["start"],
+}.items():
+    st.session_state.setdefault(k, v)
+
 with st.sidebar:
     st.header(t(lang, "sidebar_header"))
-    edad = st.number_input(t(lang, "age"), min_value=18, max_value=90, value=18, step=1)
+    edad = st.number_input(t(lang, "age"), 18, 90, 18, step=1)
     horizonte = st.slider(t(lang, "horizon"), 1, 30, 7)
     tolerancia = st.slider(t(lang, "tolerance"), 1, 10, 7, help=t(lang, "tol_help"))
     st.caption(t(lang, "tol_help"))
     st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
 
-    aportacion = st.number_input(f"{t(lang,'monthly')} ({'€' if currency=='EUR' else '$'})",
-                                 1, 10000, 300, step=10, help=t(lang,"monthly_help"))
+    aportacion = st.number_input(
+        f"{t(lang,'monthly')} ({'€' if currency=='EUR' else '$'})",
+        1, 10000, 300, step=10, help=t(lang,"monthly_help")
+    )
 
     reb_opts = [2, 4, 6, 8, 10, 12, t(lang, "reb_opt_none")]
     rebalanceo_opt = st.selectbox(t(lang, "rebalance"), reb_opts, index=2)
@@ -238,231 +443,190 @@ with st.sidebar:
                           index=["Conservador","Moderado","Agresivo"].index(perfil_sugerido))
 
     st.caption(t(lang, "custom_weights"))
-    col_w1, col_w2, col_w3 = st.columns(3)
-    with col_w1: w_equity = st.number_input(t(lang, "equity_weight"), 0, 100, w_equity, step=5)
-    with col_w2: w_bond   = st.number_input(t(lang, "bond_weight"),   0, 100, w_bond,   step=5)
-    with col_w3:
+    c1, c2, c3 = st.columns(3)
+    with c1: w_equity = st.number_input(t(lang, "equity_weight"), 0, 100, w_equity, step=5)
+    with c2: w_bond   = st.number_input(t(lang, "bond_weight"),   0, 100, w_bond,   step=5)
+    with c3:
         include_crypto = st.checkbox(t(lang, "crypto_enable"), value=False)
         w_crypto = st.number_input(t(lang, "crypto_weight"), 0, 100, w_crypto, step=5, disabled=not include_crypto)
 
-    # normaliza por si no suman 100
     total_w = max(1, w_equity + w_bond + (w_crypto if include_crypto else 0))
     w_equity_norm = round(100 * w_equity / total_w, 2)
     w_bond_norm   = round(100 * w_bond   / total_w, 2)
     w_crypto_norm = round(100 * (w_crypto if include_crypto else 0) / total_w, 2)
-    st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
 
+    st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
     st.subheader(t(lang, "assets_header"))
-    eq_ticker = st.text_input(t(lang, "equity_label"), DEFAULTS["equity_ticker"])
-    bd_ticker = st.text_input(t(lang, "bond_label"),   DEFAULTS["bond_ticker"])
-    cr_ticker = st.text_input(t(lang, "crypto_label"), DEFAULTS["crypto_ticker"]) if include_crypto else None
-    start = st.text_input(t(lang, "start_label"), DEFAULTS["start"])
+    eq_ticker = st.text_input(t(lang, "equity_label"), st.session_state["eq_ticker"], key="eq_ticker")
+    bd_ticker = st.text_input(t(lang, "bond_label"),   st.session_state["bd_ticker"], key="bd_ticker")
+    cr_ticker = st.text_input(t(lang, "crypto_label"), st.session_state["cr_ticker"], key="cr_ticker") if include_crypto else None
+    start     = st.text_input(t(lang, "start_label"),  st.session_state["start_date"], key="start_date")
+
+    with st.expander(t(lang, "suggest_shortcut"), expanded=False):
+        colA, colB = st.columns(2)
+        with colA:
+            eq_sug = st.selectbox(t(lang, "suggest_eq"),
+                                  recommend_tickers("equity", currency), index=0)
+            if st.button(t(lang, "fill") + " (Equity)"):
+                st.session_state["eq_ticker"] = eq_sug
+                st.rerun()
+        with colB:
+            bd_sug = st.selectbox(t(lang, "suggest_bd"),
+                                  recommend_tickers("bond", currency), index=0)
+            if st.button(t(lang, "fill") + " (Bond)"):
+                st.session_state["bd_ticker"] = bd_sug
+                st.rerun()
 
 run = st.button(t(lang, "simulate"))
 
-# ─────────────────────────── SIMULACIÓN DCA ──────────────────────────
-@dataclass
-class Asset:
-    ticker: str
-    weight: float
-    currency: str
-
-def monthly_index_union(series_list: list[pd.Series]) -> pd.DatetimeIndex:
-    idx = None
-    for s in series_list:
-        if s is None or s.empty: continue
-        m = s.resample("M").last().index
-        idx = m if idx is None else idx.union(m)
-    return pd.DatetimeIndex([]) if idx is None else idx.sort_values()
-
-def px_at(series: pd.Series, d: pd.Timestamp) -> float:
-    """Devuelve precio float en fecha d (soporta duplicados de fecha)."""
-    v = series.loc[d]
-    if isinstance(v, pd.Series): v = v.iloc[-1]
-    return float(v)
-
-def simulate_dca_multi(assets: list[Asset], monthly_contribution: float, start: str, end: str | None,
-                       rebalance_months: int, display_currency: str) -> tuple[pd.DataFrame, dict]:
-    native = {a.ticker: yahoo_prices(a.ticker, start, end) for a in assets}
-    conv = {}
-    for a in assets:
-        s = native[a.ticker]
-        conv[a.ticker] = convert_series_to(s, a.currency, display_currency, start) if not s.empty else s
-    if all(s.empty for s in conv.values()): return pd.DataFrame(), conv
-
-    m_idx = monthly_index_union([s for s in conv.values()])
-    if len(m_idx) == 0: return pd.DataFrame(), conv
-
-    prices_m = {t: s.reindex(m_idx).ffill() for t, s in conv.items()}
-    shares = {a.ticker: 0.0 for a in assets}; cash = 0.0
-    target_w = {a.ticker: a.weight for a in assets}
-    hist, months_since_reb = [], 0
-
-    for d in m_idx:
-        cash += monthly_contribution
-        for a in assets:
-            t = a.ticker; px = px_at(prices_m[t], d)
-            if px > 0:
-                alloc = monthly_contribution * target_w[t]
-                shares[t] += alloc / px
-
-        months_since_reb += 1
-        values = {t: shares[t] * px_at(prices_m[t], d) for t in shares}
-        port_value = sum(values.values()) + cash
-
-        if rebalance_months and months_since_reb >= rebalance_months and port_value > 0:
-            target_values = {t: target_w[t] * port_value for t in shares}
-            for t in shares:
-                px = px_at(prices_m[t], d)
-                if px > 0:
-                    diff = target_values[t] - values[t]
-                    shares[t] += diff / px
-            cash = 0.0; months_since_reb = 0
-            values = {t: shares[t] * px_at(prices_m[t], d) for t in shares}
-            port_value = sum(values.values()) + cash
-
-        row = {"date": d, "cash": cash, "total": port_value}
-        for a in assets:
-            name = "equity_value" if a.ticker == eq_ticker else ("bond_value" if a.ticker == bd_ticker else "crypto_value")
-            row[name] = values[a.ticker]
-        hist.append(row)
-
-    df = pd.DataFrame(hist).set_index("date")
-    for c in ["equity_value", "bond_value", "crypto_value"]:
-        if c not in df.columns: df[c] = 0.0
-    return df, prices_m
-
-def perf_stats(series: pd.Series) -> dict:
-    r = series.pct_change().dropna()
-    if r.empty: return {"CAGR": 0.0, "Vol": 0.0, "MaxDD": 0.0, "Sharpe": 0.0}
-    years = (series.index[-1] - series.index[0]).days / 365.25
-    cagr = (series.iloc[-1] / series.iloc[0]) ** (1 / years) - 1 if years > 0 else 0.0
-    vol = r.std() * np.sqrt(12)
-    maxdd = (series / series.cummax() - 1.0).min()
-    sharpe = (r.mean() * 12) / vol if vol > 0 else 0.0
-    return {"CAGR": cagr, "Vol": vol, "MaxDD": maxdd, "Sharpe": sharpe}
-
-def risk_level(vol: float, maxdd: float) -> str:
-    if vol < 0.08 and maxdd > -0.15: return "Bajo / Low"
-    if vol <= 0.15 or maxdd >= -0.30: return "Medio / Medium"
-    return "Alto / High"
-
-def hhi_and_neff(weights: dict[str, float]) -> tuple[float, float]:
-    w = np.array([max(0.0, v) for v in weights.values()], dtype=float)
-    if w.sum() <= 0: return 0.0, 0.0
-    w = w / w.sum(); hhi = float(np.sum(w ** 2)); neff = float(1.0 / hhi) if hhi > 0 else 0.0
-    return hhi, neff
-
-def trend_is_bearish(ticker: str, start: str, display_currency: str) -> bool | None:
-    s = yahoo_prices(ticker, start)
-    if s.empty or len(s) < 200: return None
-    src_cur = get_currency_of_ticker(ticker)
-    s = convert_series_to(s, src_cur, display_currency, start)
-    if len(s) < 200: return None
-    ma200 = s.rolling(200).mean()
-    return bool(s.iloc[-1] < ma200.iloc[-1])
-
-# ─────────────────────────── EJECUCIÓN / UI ──────────────────────────
-st.caption(t(lang, "intro"))
-
-with st.expander("⚙️ " + t(lang, "sidebar_header"), expanded=True):
-    st.write("Usa el panel izquierdo para configurar tu simulación.")
-
-run_btn = st.button(t(lang, "simulate"))
-
-if run_btn:
+# ───────────────────────────── SIMULACIÓN ───────────────────────────
+if run:
     today = date.today().isoformat()
-    check_tickers = [DEFAULTS["equity_ticker"], DEFAULTS["bond_ticker"]]
-    # usamos los que el usuario escribió
+
+    # Verificación de histórico
     check_tickers = [eq_ticker, bd_ticker] + ([cr_ticker] if (cr_ticker and include_crypto) else [])
     missing = [t for t in check_tickers if not has_history(t, start)]
     if missing:
+        st.error(t(lang, "cant_simulate"))
         for tck in missing:
-            st.warning(LANGS[lang]["no_hist"].format(ticker=tck, start=start, today=today))
+            st.warning(t(lang, "no_hist", ticker=tck, start=start, today=today))
+
+            # ¿Qué activo es para sugerir?
+            if tck == st.session_state.get("eq_ticker"):
+                kind = "equity"
+            elif tck == st.session_state.get("bd_ticker"):
+                kind = "bond"
+            else:
+                kind = "crypto"
+
+            cols = st.columns([1, 2])
+            # Sugerir primera fecha disponible
+            first_ok = first_available_month(tck)
+            with cols[0]:
+                if first_ok and st.button(f"{t(lang,'use_date')}: {first_ok}", key=f"use_date_{tck}"):
+                    st.session_state["start_date"] = first_ok
+                    st.rerun()
+
+            # Sugerir tickers alternativos
+            alts = recommend_tickers(kind, currency)
+            with cols[1]:
+                if alts:
+                    st.caption("• " + t(lang, "try_alt"))
+                    alt_cols = st.columns(min(3, len(alts)))
+                    for i, alt in enumerate(alts[:6]):
+                        with alt_cols[i % len(alt_cols)]:
+                            if st.button(f"Usar {alt}", key=f"use_{kind}_{alt}"):
+                                if kind == "equity":
+                                    st.session_state["eq_ticker"] = alt
+                                elif kind == "bond":
+                                    st.session_state["bd_ticker"] = alt
+                                else:
+                                    st.session_state["cr_ticker"] = alt
+                                st.rerun()
         st.stop()
 
+    # Construye la lista de activos
     eq_cur = get_currency_of_ticker(eq_ticker)
     bd_cur = get_currency_of_ticker(bd_ticker)
     assets = [
-        Asset(eq_ticker, weight=(w_equity_norm/100.0), currency=eq_cur),
-        Asset(bd_ticker, weight=(w_bond_norm/100.0),   currency=bd_cur),
+        Asset(eq_ticker, role="equity", weight=(w_equity_norm/100.0), currency=eq_cur),
+        Asset(bd_ticker, role="bond",   weight=(w_bond_norm/100.0),   currency=bd_cur),
     ]
     if include_crypto and cr_ticker:
         cr_cur = get_currency_of_ticker(cr_ticker)
-        assets.append(Asset(cr_ticker, weight=(w_crypto_norm/100.0), currency=cr_cur))
+        assets.append(Asset(cr_ticker, role="crypto", weight=(w_crypto_norm/100.0), currency=cr_cur))
 
+    # Ejecutar simulación
     with st.spinner("Descargando datos y simulando..." if lang=="ES" else "Downloading data and simulating..."):
         df, prices_m = simulate_dca_multi(
-            assets=assets, monthly_contribution=float(aportacion), start=start, end=None,
-            rebalance_months=(0 if rebalanceo_opt == LANGS[lang]["reb_opt_none"] else int(rebalanceo_opt)),
-            display_currency=("EUR" if currency=="EUR" else "USD")
+            assets=assets,
+            monthly_contribution=float(aportacion),
+            start=start, end=None,
+            rebalance_months=rb,
+            display_currency=("EUR" if currency=="EUR" else "USD"),
         )
         if df is None or df.empty:
-            st.warning(LANGS[lang]["no_data_range"].format(start=start, today=today)); st.stop()
+            st.warning(t(lang, "no_data_range", start=start, today=today))
+            st.stop()
 
     st.success(t(lang, "sim_done"))
-    # KPIs
-    col1, col2 = st.columns(2)
-    with col1:
+
+    # ───────── KPIs ─────────
+    c1, c2 = st.columns(2)
+    with c1:
         st.subheader(t(lang, "summary"))
         valor_final = float(df["total"].iloc[-1])
         aportado = float(df.shape[0] * float(aportacion))
         st.metric(t(lang, "final_value"), f"{CURRENCY_SYMBOL}{valor_final:,.2f}")
         st.metric(t(lang, "contributed"), f"{CURRENCY_SYMBOL}{aportado:,.2f}")
-    with col2:
+    with c2:
         st.subheader(t(lang, "metrics"))
         stats = perf_stats(df["total"])
         st.write(f"{t(lang,'cagr')}: {stats['CAGR']*100:.2f}%")
         st.write(f"{t(lang,'vol')}: {stats['Vol']*100:.2f}%")
         st.write(f"{t(lang,'maxdd')}: {stats['MaxDD']*100:.2f}%")
         st.write(f"{t(lang,'sharpe')}: {stats['Sharpe']:.2f}")
-        st.write(t(lang, "risk_level", level=risk_level(stats["Vol"], stats["MaxDD"])))
+        # nivel de riesgo
+        lvl = risk_level(stats["Vol"], stats["MaxDD"])
+        st.write(t(lang, "risk_level", level=lvl))
 
-    # Concentración
+    # ───────── Concentración ─────────
     st.subheader(t(lang, "concentration"))
     weights_pct = {a.ticker: a.weight*100 for a in assets}
     hhi, neff = hhi_and_neff({a.ticker: a.weight for a in assets})
     st.write(t(lang, "hhi", hhi=hhi, neff=neff))
 
-    # Señales
+    # ───────── Señales MA200 ─────────
     st.subheader(t(lang, "signals"))
     for a in assets:
         sig = trend_is_bearish(a.ticker, start, currency)
-        if sig is True: st.warning(t(lang, "bearish", ticker=a.ticker))
-        elif sig is False: st.info(t(lang, "not_bearish", ticker=a.ticker))
-        else: st.caption(f"{a.ticker}: {'No hay datos suficientes' if lang=='ES' else 'Insufficient data'} (MA200)")
+        if sig is True:
+            st.warning(t(lang, "bearish", ticker=a.ticker))
+        elif sig is False:
+            st.info(t(lang, "not_bearish", ticker=a.ticker))
+        else:
+            st.caption(f"{a.ticker}: {'No hay datos suficientes' if lang=='ES' else 'Insufficient data'} (MA200)")
 
-    # Gráficos
+    # ───────── Gráficos ─────────
     st.subheader(t(lang, "evolution"))
-    df_plot = df.copy(); df_plot["date"] = df_plot.index
+    df_plot = df.copy()
+    df_plot["date"] = df_plot.index
+
     value_cols = [c for c in ["equity_value", "bond_value", "crypto_value"] if c in df_plot.columns]
     seq_light = ["#16A34A", "#0EA5E9", "#F59E0B"]
     seq_dark  = ["#34D399", "#60A5FA", "#FBBF24"]
     seq = seq_dark if dark else seq_light
     template = "plotly_dark" if dark else "plotly"
 
-    fig_comp = px.line(df_plot, x="date", y=value_cols, template=template,
-                       color_discrete_sequence=seq,
-                       labels={"value": CURRENCY_SYMBOL, "date": t(lang,"date"), "variable": t(lang,"component")},
-                       title=t(lang, "components_title"))
+    fig_comp = px.line(
+        df_plot, x="date", y=value_cols, template=template,
+        color_discrete_sequence=seq,
+        labels={"value": CURRENCY_SYMBOL, "date": t(lang,"date"), "variable": t(lang,"component")},
+        title=t(lang, "components_title"),
+    )
     fig_comp.update_traces(mode="lines+markers",
                            hovertemplate="%{x|%Y-%m-%d}<br>%{fullData.name}: "+CURRENCY_SYMBOL+"%{y:,.2f}")
     st.plotly_chart(fig_comp, use_container_width=True)
 
-    fig_tot = px.line(df_plot, x="date", y="total", template=template,
-                      color_discrete_sequence=[seq[0]],
-                      labels={"total": CURRENCY_SYMBOL, "date": t(lang,"date")},
-                      title=t(lang, "total_title"))
+    fig_tot = px.line(
+        df_plot, x="date", y="total", template=template,
+        color_discrete_sequence=[seq[0]],
+        labels={"total": CURRENCY_SYMBOL, "date": t(lang,"date")},
+        title=t(lang, "total_title"),
+    )
     fig_tot.update_traces(mode="lines+markers",
                           hovertemplate="%{x|%Y-%m-%d}<br>"+t(lang,"hover_total")+": "+CURRENCY_SYMBOL+"%{y:,.2f}")
     st.plotly_chart(fig_tot, use_container_width=True)
 
     st.subheader(t(lang, "last12"))
-    tail_cols = [c for c in ["equity_value","bond_value","crypto_value","cash","total"] if c in df.columns]
-    st.dataframe(df[tail_cols].tail(12).style.format({col: lambda v: f"{CURRENCY_SYMBOL}{v:,.2f}" for col in tail_cols if col!="date"}))
+    tail_cols = [c for c in ["equity_value", "bond_value", "crypto_value", "cash", "total"] if c in df.columns]
+    st.dataframe(
+        df[tail_cols].tail(12).style.format({col: (lambda v: f"{CURRENCY_SYMBOL}{v:,.2f}") for col in tail_cols})
+    )
 
-    # PDF
-    def generar_pdf(buffer, brand, lang, perfil, aportacion, rebalanceo_opt, currency, weights_pct, tickers, stats, valor_final, aportado, hhi, neff):
+    # ───────── PDF ─────────
+    def generar_pdf(buffer, brand, lang, perfil, aportacion, rebalanceo_opt, currency,
+                    weights_pct, tickers, stats, valor_final, aportado, hhi, neff):
         c = canvas.Canvas(buffer, pagesize=A4)
         W, H = A4; x, y = 2*cm, H - 2*cm
         c.setFont("Helvetica-Bold", 16)
@@ -494,12 +658,16 @@ if run_btn:
     generar_pdf(pdf_buffer, BRAND_NAME, lang, perfil, float(aportacion), rebalanceo_opt, currency,
                 {k: f"{v:.1f}%" for k, v in weights_pct.items()}, list(weights_pct.keys()),
                 stats, valor_final, aportado, hhi, neff)
-    st.download_button(label=t(lang, "pdf_btn"), data=pdf_buffer.getvalue(),
-                       file_name=f"{BRAND_NAME}_report_{datetime.now():%Y%m%d_%H%M}.pdf", mime="application/pdf")
+    st.download_button(
+        label=t(lang, "pdf_btn"),
+        data=pdf_buffer.getvalue(),
+        file_name=f"{BRAND_NAME}_report_{datetime.now():%Y%m%d_%H%M}.pdf",
+        mime="application/pdf"
+    )
 
-# ─────────────────────────── GLOSARIO / FEEDBACK ─────────────────────
+# ────────────────────────── GLOSARIO / FEEDBACK ─────────────────────
 st.divider()
-st.subheader("📖 " + t(lang, "glossary"))
+st.subheader(t(lang, "glossary"))
 with st.expander(t(lang, "glossary"), expanded=False):
     st.markdown(t(lang, "glossary_text"))
     st.markdown("---")
