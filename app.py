@@ -13,157 +13,120 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
 
+# ───────────────────────────────── CONFIG ─────────────────────────────────
 BRAND_NAME = "Fincontrol"
 DEFAULTS = {
-    "equity_ticker": "VWRA.L",
-    "bond_ticker": "AGGU.L",
+    "equity_ticker": "VWRA.L",  # ETF global acciones (LSE)
+    "bond_ticker": "AGGU.L",    # ETF global bonos (LSE)
     "crypto_ticker": "BTC-USD",
     "start": "2018-01-01",
 }
-# 👇 Tu Google Form real:
 FEEDBACK_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfKW6vS86U0hUh7hlLhJM6XUJwaSy7Ci_ZpxDGtqwUu55OEQQ/viewform?usp=header"
 
-st.set_page_config(page_title=f"{BRAND_NAME} — Simulador de Inversión", page_icon="💼", layout="centered")
+st.set_page_config(page_title=f"{BRAND_NAME} — Simulador de Inversión", page_icon="💼", layout="wide")
 
+# ─────────────────────────── TEXTOS (ES/EN) ───────────────────────────
 LANGS = {
     "ES": {
-        "title": f"💼 {BRAND_NAME} — Simulador de Inversión (Demo)",
-        "intro": "Simula aportes mensuales (DCA) en varios activos (acciones/ETF, bonos y cripto) con rebalanceo periódico. "
+        "title": f"{BRAND_NAME} — Simulador de Inversión (Demo)",
+        "intro": "Simula aportes mensuales (DCA) en acciones/ETFs, bonos y cripto con rebalanceo periódico. "
                  "Es **educativo**: no es asesoramiento financiero ni mueve dinero real.",
-        "demo_note": "**Demo educativa** — Sin conexión a broker. Aprende cómo podría comportarse una cartera en el tiempo.",
+        "demo_note": "Demo educativa — Sin conexión a broker. Aprende cómo podría comportarse una cartera en el tiempo.",
         "language": "Idioma", "spanish": "Español", "english": "English",
         "currency": "Moneda", "eur": "EUR (€)", "usd": "USD ($)",
-        "sidebar_header": "🧭 Onboarding rápido",
-        "darkmode": "Tema oscuro",
-        "age": "Tu edad", "horizon": "¿Cuántos años piensas invertir sin tocarlo?",
-        "tolerance": "¿Qué tanto soportas subidas/bajadas?", "tol_help": "1 = No la soporto • 10 = La soporto totalmente",
-        "monthly": "Aportación mensual", "monthly_help": "Introduce la aportación en la moneda seleccionada arriba.",
+        "sidebar_header": "🧭 Onboarding rápido", "darkmode": "Tema oscuro",
+        "age": "Tu edad", "horizon": "¿Cuántos años sin tocar la inversión?",
+        "tolerance": "¿Qué tanto soportas subidas/bajadas?", "tol_help": "1 = Nada • 10 = Totalmente",
+        "monthly": "Aportación mensual", "monthly_help": "En la moneda seleccionada.",
         "rebalance": "Rebalanceo (cada X meses)", "reb_opt_none": "Sin rebalanceo",
-        "profiles_header": "Perfiles & Pesos", "choose_profile": "Perfil sugerido (puedes cambiarlo)",
+        "profiles_header": "Perfiles & Pesos", "choose_profile": "Perfil sugerido (editable)",
         "custom_weights": "Ajusta pesos (suman 100%)", "equity_weight": "Acciones (%)",
         "bond_weight": "Bonos (%)", "crypto_weight": "Cripto (%)",
-        "assets_header": "Activos por defecto (puedes cambiarlos)",
-        "equity_label": "Acciones / ETF (ej: VWRA.L)", "bond_label": "Bonos / ETF (ej: AGGU.L)",
-        "crypto_enable": "Incluir Cripto", "crypto_label": "Cripto (ej: BTC-USD)",
+        "assets_header": "Activos por defecto (cambiables)",
+        "equity_label": "Acciones / ETF (p.ej., VWRA.L)", "bond_label": "Bonos / ETF (p.ej., AGGU.L)",
+        "crypto_enable": "Incluir cripto", "crypto_label": "Cripto (p.ej., BTC-USD)",
         "start_label": "Inicio histórico (YYYY-MM-DD)", "simulate": "▶️ Simular cartera",
-        "no_hist": "ℹ️ No hay datos históricos para **{ticker}** desde **{start}** hasta **{today}**.",
-        "no_data_range": "ℹ️ No hay datos suficientes entre **{start}** y **{today}** para estos activos.",
-        "sim_done": "✅ Simulación completa", "sim_fail": "❌ No se pudo simular la cartera. Revisa los tickers o inténtalo más tarde.",
+        "no_hist": "No hay datos para **{ticker}** desde **{start}** hasta **{today}**.",
+        "no_data_range": "No hay datos suficientes entre **{start}** y **{today}** para estos activos.",
+        "sim_done": "Simulación completa", "sim_fail": "No se pudo simular. Revisa tickers o intenta luego.",
         "summary": "Resumen", "final_value": "Valor final", "contributed": "Aportado",
-        "metrics": "Métricas", "cagr": "**CAGR** (crecimiento anual compuesto)",
-        "vol": "**Volatilidad** (aprox. anual)", "maxdd": "**Max Drawdown** (máx. caída)", "sharpe": "**Sharpe (rf≈0)**",
-        "risk_level": "**Nivel de riesgo estimado:** {level}",
-        "concentration": "Concentración (HHI) y Nº efectivo de posiciones", "hhi": "HHI: {hhi:.3f} • Nº efectivo: {neff:.2f}",
-        "signals": "Señales de tendencia (MA200)", "bearish": "⚠️ {ticker}: **bajista** (precio < MA200)",
-        "not_bearish": "ℹ️ {ticker}: **no bajista** (precio ≥ MA200)",
+        "metrics": "Métricas", "cagr": "CAGR", "vol": "Volatilidad (anual aprox.)",
+        "maxdd": "Max Drawdown", "sharpe": "Sharpe (rf≈0)",
+        "risk_level": "Nivel de riesgo estimado: {level}",
+        "concentration": "Concentración (HHI) y Nº efectivo", "hhi": "HHI: {hhi:.3f} • Nº efectivo: {neff:.2f}",
+        "signals": "Señales de tendencia (MA200)", "bearish": "⚠️ {ticker} bajista (precio < MA200)",
+        "not_bearish": "ℹ️ {ticker} no bajista (precio ≥ MA200)",
         "evolution": "Evolución de la cartera (interactiva)", "components_title": "Componentes por valor",
         "total_title": "Valor total de la cartera", "date": "Fecha", "component": "Componente", "hover_total": "Total",
         "last12": "Datos (últimos 12 meses)",
         "glossary": "📖 Cómo leer los resultados",
         "glossary_text": (
-            "- **DCA (Dollar-Cost Averaging):** aportar una cantidad fija cada período.\n"
-            "- **Valor de la cartera (Total):** lo que tendrías hoy si hubieras invertido cada mes.\n"
-            "- **Aportado:** suma de tus aportes (ej. 300 × nº de meses) en la moneda seleccionada.\n"
-            "- **Equity (Acciones):** ETFs/acciones globales (mayor crecimiento, mayor volatilidad).\n"
-            "- **Bond (Bonos):** ETFs de renta fija (más estables, menor crecimiento).\n"
-            "- **Cripto:** activos como BTC/ETH (muy volátiles; opcionales).\n"
-            "- **Rebalanceo:** volver a los pesos objetivo cada cierto tiempo (2/4/6/8/10/12 meses o sin rebalanceo).\n"
-            "- **CAGR:** crecimiento anual compuesto.\n"
-            "- **Volatilidad:** cuánto sube y baja la cartera (riesgo).\n"
-            "- **Max Drawdown:** peor caída desde un máximo a un mínimo.\n"
-            "- **Sharpe:** rentabilidad ajustada al riesgo (más alto, mejor).\n"
-            "- **MA200:** media móvil de 200 días; si el precio < MA200, tendencia bajista simple.\n"
-            "- **HHI (Concentración):** suma de pesos²; cuanto mayor, más concentrada.\n"
-            "- **Nº efectivo:** 1/HHI; aproxima “cuántos activos independientes” tienes.\n"
-            "- **Moneda:** los valores se convierten a la moneda seleccionada (EUR/USD) usando tipos de cambio de Yahoo.\n"
+            "- **DCA:** aportas una cantidad fija cada mes.\n"
+            "- **Total:** lo que tendrías hoy con esas aportaciones.\n"
+            "- **Aportado:** suma de tus aportes.\n"
+            "- **Rebalanceo:** volver a los pesos objetivo (2/4/6/8/10/12 meses o sin).\n"
+            "- **CAGR/Vol/MaxDD/Sharpe:** rendimiento y riesgo.\n"
+            "- **MA200:** media móvil 200 días (señal de tendencia simple).\n"
+            "- **HHI/Nº efectivo:** concentración/diversificación.\n"
+            "- **Moneda:** conversiones a EUR/USD con tipos de Yahoo.\n"
             "- **TIP:** si no ves datos, prueba inicio desde **2018-01-01**."
         ),
-        "table_howto_title": "ℹ️ Cómo leer la tabla de los últimos 12 meses",
-        "table_howto_text": (
-            "La tabla muestra el valor al final de cada mes (en la moneda elegida):\n"
-            "- **Equity Value**: valor de acciones.\n"
-            "- **Bond Value**: valor de bonos.\n"
-            "- **Crypto Value**: valor de cripto (si está activada).\n"
-            "- **Cash**: efectivo no invertido (normalmente 0 tras rebalanceo).\n"
-            "- **Total**: **suma** de todas las columnas anteriores."
-        ),
+        "table_howto_title": "Cómo leer la tabla de los últimos 12 meses",
+        "table_howto_text": "Valores de fin de mes: Equity, Bond, Crypto, Cash y **Total** (suma).",
         "pdf_btn": "📄 Descargar PDF del informe",
         "feedback": "📝 Feedback rápido",
-        "feedback_text": "¿Qué mejorarías? Cuéntanos aquí: [Formulario de feedback]({url}) *(1 minuto)*",
+        "feedback_text": "¿Qué mejorarías? Dínoslo aquí: [Formulario]({url}) *(1 min)*",
         "disclaimer": "Demo educativa. No es asesoramiento financiero ni mueve dinero real.",
+        "slogan": "Tu dinero, bajo control.",
     },
     "EN": {
-        "title": f"💼 {BRAND_NAME} — Investment Simulator (Demo)",
-        "intro": "Simulate monthly contributions (DCA) into multiple assets (equities/ETFs, bonds and crypto) with periodic rebalancing. "
-                 "This is **educational**: not financial advice and no real money is moved.",
-        "demo_note": "**Educational demo** — No broker connection. Learn how a portfolio could behave over time.",
+        "title": f"{BRAND_NAME} — Investment Simulator (Demo)",
+        "intro": "Simulate monthly contributions (DCA) into equities/ETFs, bonds and crypto with periodic rebalancing. "
+                 "Educational demo — not financial advice; no real money moved.",
+        "demo_note": "Educational demo — No broker connection.",
         "language": "Language", "spanish": "Español", "english": "English",
         "currency": "Currency", "eur": "EUR (€)", "usd": "USD ($)",
-        "sidebar_header": "🧭 Quick onboarding",
-        "darkmode": "Dark theme",
-        "age": "Your age", "horizon": "How many years will you invest without touching it?",
-        "tolerance": "How much volatility can you stand?", "tol_help": "1 = I can't stand it • 10 = I can fully stand it",
-        "monthly": "Monthly contribution", "monthly_help": "Enter the contribution in the selected currency above.",
+        "sidebar_header": "🧭 Quick onboarding", "darkmode": "Dark theme",
+        "age": "Your age", "horizon": "How many years without touching it?",
+        "tolerance": "How much volatility can you stand?", "tol_help": "1 = None • 10 = Fully",
+        "monthly": "Monthly contribution", "monthly_help": "In the selected currency.",
         "rebalance": "Rebalancing (every X months)", "reb_opt_none": "No rebalancing",
-        "profiles_header": "Profiles & Weights", "choose_profile": "Suggested profile (you can change it)",
+        "profiles_header": "Profiles & Weights", "choose_profile": "Suggested profile (editable)",
         "custom_weights": "Adjust weights (sum to 100%)", "equity_weight": "Equities (%)",
         "bond_weight": "Bonds (%)", "crypto_weight": "Crypto (%)",
-        "assets_header": "Default assets (you can change them)",
+        "assets_header": "Default assets (changeable)",
         "equity_label": "Equities / ETF (e.g., VWRA.L)", "bond_label": "Bonds / ETF (e.g., AGGU.L)",
-        "crypto_enable": "Include Crypto", "crypto_label": "Crypto (e.g., BTC-USD)",
+        "crypto_enable": "Include crypto", "crypto_label": "Crypto (e.g., BTC-USD)",
         "start_label": "Start date (YYYY-MM-DD)", "simulate": "▶️ Run simulation",
-        "no_hist": "ℹ️ No historical data for **{ticker}** from **{start}** to **{today}**.",
-        "no_data_range": "ℹ️ Not enough data between **{start}** and **{today}** for these assets.",
-        "sim_done": "✅ Simulation completed", "sim_fail": "❌ Could not run the simulation. Check tickers or try later.",
+        "no_hist": "No data for **{ticker}** from **{start}** to **{today}**.",
+        "no_data_range": "Not enough data between **{start}** and **{today}** for these assets.",
+        "sim_done": "Simulation completed", "sim_fail": "Could not simulate. Check tickers or try later.",
         "summary": "Summary", "final_value": "Final value", "contributed": "Contributed",
-        "metrics": "Metrics", "cagr": "**CAGR** (compound annual growth rate)",
-        "vol": "**Volatility** (approx. annual)", "maxdd": "**Max Drawdown**", "sharpe": "**Sharpe (rf≈0)**",
-        "risk_level": "**Estimated risk level:** {level}",
+        "metrics": "Metrics", "cagr": "CAGR", "vol": "Volatility (approx. annual)",
+        "maxdd": "Max Drawdown", "sharpe": "Sharpe (rf≈0)",
+        "risk_level": "Estimated risk level: {level}",
         "concentration": "Concentration (HHI) & Effective number", "hhi": "HHI: {hhi:.3f} • Effective N: {neff:.2f}",
-        "signals": "Trend signals (MA200)", "bearish": "⚠️ {ticker}: **bearish** (price < MA200)",
-        "not_bearish": "ℹ️ {ticker}: **not bearish** (price ≥ MA200)",
+        "signals": "Trend signals (MA200)", "bearish": "⚠️ {ticker} bearish (price < MA200)",
+        "not_bearish": "ℹ️ {ticker} not bearish (price ≥ MA200)",
         "evolution": "Portfolio evolution (interactive)", "components_title": "Components by value",
         "total_title": "Total portfolio value", "date": "Date", "component": "Component", "hover_total": "Total",
         "last12": "Data (last 12 months)",
-        "glossary": "📖 How to read the results",
-        "glossary_text": (
-            "- **DCA (Dollar-Cost Averaging):** invest a fixed amount each period.\n"
-            "- **Portfolio value (Total):** what you'd have today if you invested monthly.\n"
-            "- **Contributed:** total contributions (e.g., 300 × months) in the selected currency.\n"
-            "- **Equity:** global equities/ETFs (higher growth, higher volatility).\n"
-            "- **Bond:** fixed-income ETFs (more stable, lower growth).\n"
-            "- **Crypto:** assets like BTC/ETH (very volatile; optional).\n"
-            "- **Rebalancing:** revert to target weights periodically (2/4/6/8/10/12 months or none).\n"
-            "- **CAGR:** compound annual growth rate.\n"
-            "- **Volatility:** how much the portfolio moves (risk).\n"
-            "- **Max Drawdown:** worst peak-to-trough decline.\n"
-            "- **Sharpe:** risk-adjusted return (higher is better).\n"
-            "- **MA200:** 200-day moving average; price < MA200 = simple bearish signal.\n"
-            "- **HHI (Concentration):** sum of weights²; higher = more concentrated.\n"
-            "- **Effective number:** 1/HHI; approximates “how many independent assets”.\n"
-            "- **Currency:** values are converted to the selected currency (EUR/USD) using Yahoo FX rates.\n"
-            "- **TIP:** if you don't see data, try start date from **2018-01-01**."
-        ),
-        "table_howto_title": "ℹ️ How to read the last 12 months table",
-        "table_howto_text": (
-            "The table shows month-end values (in the selected currency):\n"
-            "- **Equity Value**: equities value.\n"
-            "- **Bond Value**: bonds value.\n"
-            "- **Crypto Value**: crypto value (if enabled).\n"
-            "- **Cash**: cash not invested (usually 0 after rebalancing).\n"
-            "- **Total**: the **sum** of all previous columns."
-        ),
+        "glossary": "How to read the results",
+        "glossary_text": "Month-end values: Equity, Bond, Crypto, Cash and **Total** (sum).",
         "pdf_btn": "📄 Download PDF report",
         "feedback": "📝 Quick feedback",
-        "feedback_text": "What would you improve? Tell us here: [Feedback form]({url}) *(1 minute)*",
-        "disclaimer": "Educational demo. Not financial advice and no real money is moved.",
+        "feedback_text": "Tell us here: [Form]({url}) *(1 min)*",
+        "disclaimer": "Educational demo. Not financial advice; no real money moved.",
+        "slogan": "Your money, under control.",
     },
 }
 def t(lang, key, **kwargs):
     text = LANGS[lang][key]
     return text.format(**kwargs) if kwargs else text
 
-# ── Idioma / Moneda / Dark mode ──────────────────────────────────────
+# ──────────────────────────── HEADER / BRAND ──────────────────────────
+LOGO_WORDMARK = "assets/fincontrol_wordmark.svg"  # súbelo a esta ruta
+# Top bar: idioma / moneda / tema
 lang = st.sidebar.selectbox(f"{t('ES','language')} / {t('EN','language')}",
                             ["ES", "EN"], index=0,
                             format_func=lambda x: LANGS[x]["spanish"] if x=="ES" else LANGS[x]["english"])
@@ -172,83 +135,70 @@ currency = st.sidebar.selectbox(t(lang, "currency"), ["EUR", "USD"], index=0,
 CURRENCY_SYMBOL = "€" if currency == "EUR" else "$"
 dark = st.sidebar.toggle(t(lang, "darkmode"), value=False)
 
-# Branding (logo + intro)
-LOGO_WORDMARK = "assets/fincontrol_wordmark.svg"
-if Path(LOGO_WORDMARK).exists():
-    col_logo, col_title = st.columns([1, 3])
-    with col_logo:
-        st.image(LOGO_WORDMARK, use_container_width=True)
-    with col_title:
-        st.title(t(lang, "title"))
-        st.write(t(lang, "intro"))
-else:
-    st.title(t(lang, "title"))
-    st.write(t(lang, "intro"))
+# Header pro (logo + slogan)
+st.markdown(
+    f"""
+    <div style="display:flex; flex-direction:column; align-items:center; gap:.4rem; margin: .6rem 0 1rem 0;">
+        <img src="{LOGO_WORDMARK}" alt="{BRAND_NAME}" style="max-width: 560px; width:60%; min-width:260px; height:auto;">
+        <div style="font-size:1.05rem; opacity:.85;">{t(lang,'slogan')}</div>
+    </div>
+    <hr style="margin: .4rem 0 1.2rem 0; opacity:.25;">
+    """,
+    unsafe_allow_html=True
+)
 st.info(t(lang, "demo_note"))
 
-# CSS claro/oscuro
-light_css = """
+# Estilos (sidebar ancho + espaciado; tema oscuro)
+base_css = """
 <style>
-.block-container { max-width: 980px; }
+.block-container { max-width: 1140px; }
+section[data-testid="stSidebar"] { min-width: 340px; }
+section[data-testid="stSidebar"] * { line-height: 1.25rem; }
+.sidebar-spacer { height: 12px; }
 h3, .stSubheader { border-left: 6px solid #16A34A22; padding-left: 10px; }
-div.stMarkdown > div.card {
-  background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 14px;
-  padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); margin-bottom: 12px;
-}
+div.card { background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 14px;
+           padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); margin-bottom: 12px; }
 button[kind="primary"] { border-radius: 10px; }
 </style>
 """
 dark_css = """
 <style>
-.block-container { max-width: 980px; }
 html, body, [data-testid="stAppViewContainer"] { background: #0B1220 !important; color: #EEF2F6; }
 section[data-testid="stSidebar"] { background: #0F172A !important; }
 h1,h2,h3,h4,h5,h6, label, span, p { color: #EEF2F6 !important; }
 .stDataFrame tbody td, .stDataFrame thead th { color: #EEF2F6 !important; }
 h3, .stSubheader { border-left: 6px solid #16A34A55; padding-left: 10px; }
-div.stMarkdown > div.card {
-  background: #111827; border: 1px solid #1F2937; border-radius: 14px;
-  padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.3); margin-bottom: 12px;
-}
-button[kind="primary"] { border-radius: 10px; }
+div.card { background: #111827; border: 1px solid #1F2937; border-radius: 14px;
+           padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.3); margin-bottom: 12px; }
 </style>
 """
-st.markdown(dark_css if dark else light_css, unsafe_allow_html=True)
+st.markdown(base_css + (dark_css if dark else ""), unsafe_allow_html=True)
 
-# ── Datos / proveedor ────────────────────────────────────────────────
+# ─────────────────────────── DATOS / HELPERS ─────────────────────────
 @st.cache_data(show_spinner=False, ttl=3600)
 def yahoo_prices(ticker: str, start: str, end: str | None = None) -> pd.Series:
     df = yf.download(ticker.strip(), start=start.strip(), end=end, progress=False, auto_adjust=True)
-    if df is None or df.empty:
-        return pd.Series(dtype=float)
-    s = df["Close"].dropna()
-    s.index = pd.to_datetime(s.index)
-    return s
+    if df is None or df.empty: return pd.Series(dtype=float)
+    s = df["Close"].dropna(); s.index = pd.to_datetime(s.index); return s
 
 @st.cache_data(show_spinner=False, ttl=86400)
 def get_currency_of_ticker(ticker: str) -> str:
     try:
-        info = yf.Ticker(ticker).fast_info
-        cur = getattr(info, "currency", None)
+        info = yf.Ticker(ticker).fast_info; cur = getattr(info, "currency", None)
         if cur: return cur
-    except Exception:
-        pass
+    except Exception: pass
     try:
-        info2 = yf.Ticker(ticker).info
-        cur = info2.get("currency")
+        info2 = yf.Ticker(ticker).info; cur = info2.get("currency")
         if cur: return cur
-    except Exception:
-        pass
+    except Exception: pass
     return "USD"
 
 def fx_pair(src: str, dst: str) -> str | None:
-    if src == dst: return None
-    return f"{src}{dst}=X"
+    return None if src == dst else f"{src}{dst}=X"
 
 def convert_series_to(series: pd.Series, src_cur: str, dst_cur: str, start: str) -> pd.Series:
     if src_cur == dst_cur: return series
-    pair = fx_pair(src_cur, dst_cur)
-    fx = yahoo_prices(pair, start)
+    pair = fx_pair(src_cur, dst_cur); fx = yahoo_prices(pair, start)
     if fx.empty:
         st.warning(f"FX no disponible para {src_cur}->{dst_cur} ({pair}). Se muestran valores sin convertir.")
         return series
@@ -256,25 +206,25 @@ def convert_series_to(series: pd.Series, src_cur: str, dst_cur: str, start: str)
     return series * fx
 
 def has_history(ticker: str, start: str) -> bool:
-    try:
-        s = yahoo_prices(ticker, start)
-        return not s.empty
-    except Exception:
-        return False
+    try: return not yahoo_prices(ticker, start).empty
+    except Exception: return False
 
-# ── Sidebar / controles ─────────────────────────────────────────────
+# ─────────────────────────── CONTROLES (SIDEBAR) ─────────────────────
 with st.sidebar:
     st.header(t(lang, "sidebar_header"))
     edad = st.number_input(t(lang, "age"), min_value=18, max_value=90, value=18, step=1)
     horizonte = st.slider(t(lang, "horizon"), 1, 30, 7)
     tolerancia = st.slider(t(lang, "tolerance"), 1, 10, 7, help=t(lang, "tol_help"))
     st.caption(t(lang, "tol_help"))
-    aportacion = st.number_input(t(lang, "monthly") + f" ({CURRENCY_SYMBOL})", 1, 10000, 300, step=10, help=t(lang,"monthly_help"))
+    st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
 
-    # Rebalanceo: 2/4/6/8/10/12 o sin rebalanceo
+    aportacion = st.number_input(f"{t(lang,'monthly')} ({'€' if currency=='EUR' else '$'})",
+                                 1, 10000, 300, step=10, help=t(lang,"monthly_help"))
+
     reb_opts = [2, 4, 6, 8, 10, 12, t(lang, "reb_opt_none")]
     rebalanceo_opt = st.selectbox(t(lang, "rebalance"), reb_opts, index=2)
     rb = 0 if rebalanceo_opt == t(lang, "reb_opt_none") else int(rebalanceo_opt)
+    st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
 
     st.subheader(t(lang, "profiles_header"))
     if horizonte >= 5 and tolerancia >= 7:
@@ -283,7 +233,6 @@ with st.sidebar:
         perfil_sugerido = "Moderado"; w_equity, w_bond, w_crypto = 50, 50, 0
     else:
         perfil_sugerido = "Conservador"; w_equity, w_bond, w_crypto = 30, 70, 0
-
     perfil = st.selectbox(t(lang, "choose_profile"),
                           ["Conservador", "Moderado", "Agresivo"],
                           index=["Conservador","Moderado","Agresivo"].index(perfil_sugerido))
@@ -296,54 +245,55 @@ with st.sidebar:
         include_crypto = st.checkbox(t(lang, "crypto_enable"), value=False)
         w_crypto = st.number_input(t(lang, "crypto_weight"), 0, 100, w_crypto, step=5, disabled=not include_crypto)
 
+    # normaliza por si no suman 100
     total_w = max(1, w_equity + w_bond + (w_crypto if include_crypto else 0))
     w_equity_norm = round(100 * w_equity / total_w, 2)
     w_bond_norm   = round(100 * w_bond   / total_w, 2)
     w_crypto_norm = round(100 * (w_crypto if include_crypto else 0) / total_w, 2)
+    st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
 
-    st.divider()
     st.subheader(t(lang, "assets_header"))
     eq_ticker = st.text_input(t(lang, "equity_label"), DEFAULTS["equity_ticker"])
-    bd_ticker = st.text_input(t(lang, "bond_label"), DEFAULTS["bond_ticker"])
-    if include_crypto:
-        cr_ticker = st.text_input(t(lang, "crypto_label"), DEFAULTS["crypto_ticker"])
-    else:
-        cr_ticker = None
+    bd_ticker = st.text_input(t(lang, "bond_label"),   DEFAULTS["bond_ticker"])
+    cr_ticker = st.text_input(t(lang, "crypto_label"), DEFAULTS["crypto_ticker"]) if include_crypto else None
     start = st.text_input(t(lang, "start_label"), DEFAULTS["start"])
 
 run = st.button(t(lang, "simulate"))
 
-# ── Simulación ───────────────────────────────────────────────────────
+# ─────────────────────────── SIMULACIÓN DCA ──────────────────────────
 @dataclass
 class Asset:
     ticker: str
-    weight: float  # 0..1
+    weight: float
     currency: str
 
 def monthly_index_union(series_list: list[pd.Series]) -> pd.DatetimeIndex:
     idx = None
     for s in series_list:
-        if s is None or s.empty: 
-            continue
+        if s is None or s.empty: continue
         m = s.resample("M").last().index
         idx = m if idx is None else idx.union(m)
     return pd.DatetimeIndex([]) if idx is None else idx.sort_values()
 
+def px_at(series: pd.Series, d: pd.Timestamp) -> float:
+    """Devuelve precio float en fecha d (soporta duplicados de fecha)."""
+    v = series.loc[d]
+    if isinstance(v, pd.Series): v = v.iloc[-1]
+    return float(v)
+
 def simulate_dca_multi(assets: list[Asset], monthly_contribution: float, start: str, end: str | None,
                        rebalance_months: int, display_currency: str) -> tuple[pd.DataFrame, dict]:
-    native_prices = {a.ticker: yahoo_prices(a.ticker, start, end) for a in assets}
-    conv_prices   = {}
+    native = {a.ticker: yahoo_prices(a.ticker, start, end) for a in assets}
+    conv = {}
     for a in assets:
-        s = native_prices[a.ticker]
-        if s.empty: conv_prices[a.ticker] = s; continue
-        s_conv = convert_series_to(s, a.currency, display_currency, start)
-        conv_prices[a.ticker] = s_conv
-    if all(s.empty for s in conv_prices.values()): return pd.DataFrame(), conv_prices
+        s = native[a.ticker]
+        conv[a.ticker] = convert_series_to(s, a.currency, display_currency, start) if not s.empty else s
+    if all(s.empty for s in conv.values()): return pd.DataFrame(), conv
 
-    m_idx = monthly_index_union([s for s in conv_prices.values()])
-    if len(m_idx) == 0: return pd.DataFrame(), conv_prices
+    m_idx = monthly_index_union([s for s in conv.values()])
+    if len(m_idx) == 0: return pd.DataFrame(), conv
 
-    prices_m = {t: s.reindex(m_idx).ffill() for t, s in conv_prices.items()}
+    prices_m = {t: s.reindex(m_idx).ffill() for t, s in conv.items()}
     shares = {a.ticker: 0.0 for a in assets}; cash = 0.0
     target_w = {a.ticker: a.weight for a in assets}
     hist, months_since_reb = [], 0
@@ -351,23 +301,26 @@ def simulate_dca_multi(assets: list[Asset], monthly_contribution: float, start: 
     for d in m_idx:
         cash += monthly_contribution
         for a in assets:
-            t = a.ticker; px = float(prices_m[t].loc[d])
+            t = a.ticker; px = px_at(prices_m[t], d)
             if px > 0:
                 alloc = monthly_contribution * target_w[t]
                 shares[t] += alloc / px
+
         months_since_reb += 1
-        values = {t: shares[t] * float(prices_m[t].loc[d]) for t in shares}
+        values = {t: shares[t] * px_at(prices_m[t], d) for t in shares}
         port_value = sum(values.values()) + cash
+
         if rebalance_months and months_since_reb >= rebalance_months and port_value > 0:
             target_values = {t: target_w[t] * port_value for t in shares}
             for t in shares:
-                px = float(prices_m[t].loc[d])
+                px = px_at(prices_m[t], d)
                 if px > 0:
                     diff = target_values[t] - values[t]
                     shares[t] += diff / px
             cash = 0.0; months_since_reb = 0
-            values = {t: shares[t] * float(prices_m[t].loc[d]) for t in shares}
+            values = {t: shares[t] * px_at(prices_m[t], d) for t in shares}
             port_value = sum(values.values()) + cash
+
         row = {"date": d, "cash": cash, "total": port_value}
         for a in assets:
             name = "equity_value" if a.ticker == eq_ticker else ("bond_value" if a.ticker == bd_ticker else "crypto_value")
@@ -385,7 +338,7 @@ def perf_stats(series: pd.Series) -> dict:
     years = (series.index[-1] - series.index[0]).days / 365.25
     cagr = (series.iloc[-1] / series.iloc[0]) ** (1 / years) - 1 if years > 0 else 0.0
     vol = r.std() * np.sqrt(12)
-    cummax = series.cummax(); dd = series / cummax - 1.0; maxdd = dd.min()
+    maxdd = (series / series.cummax() - 1.0).min()
     sharpe = (r.mean() * 12) / vol if vol > 0 else 0.0
     return {"CAGR": cagr, "Vol": vol, "MaxDD": maxdd, "Sharpe": sharpe}
 
@@ -409,13 +362,23 @@ def trend_is_bearish(ticker: str, start: str, display_currency: str) -> bool | N
     ma200 = s.rolling(200).mean()
     return bool(s.iloc[-1] < ma200.iloc[-1])
 
-if run:
+# ─────────────────────────── EJECUCIÓN / UI ──────────────────────────
+st.caption(t(lang, "intro"))
+
+with st.expander("⚙️ " + t(lang, "sidebar_header"), expanded=True):
+    st.write("Usa el panel izquierdo para configurar tu simulación.")
+
+run_btn = st.button(t(lang, "simulate"))
+
+if run_btn:
     today = date.today().isoformat()
+    check_tickers = [DEFAULTS["equity_ticker"], DEFAULTS["bond_ticker"]]
+    # usamos los que el usuario escribió
     check_tickers = [eq_ticker, bd_ticker] + ([cr_ticker] if (cr_ticker and include_crypto) else [])
     missing = [t for t in check_tickers if not has_history(t, start)]
     if missing:
         for tck in missing:
-            st.warning(t(lang, "no_hist", ticker=tck, start=start, today=today))
+            st.warning(LANGS[lang]["no_hist"].format(ticker=tck, start=start, today=today))
         st.stop()
 
     eq_cur = get_currency_of_ticker(eq_ticker)
@@ -428,15 +391,16 @@ if run:
         cr_cur = get_currency_of_ticker(cr_ticker)
         assets.append(Asset(cr_ticker, weight=(w_crypto_norm/100.0), currency=cr_cur))
 
-    with st.spinner("Descargando datos y simulando..." if lang == "ES" else "Downloading data and simulating..."):
+    with st.spinner("Descargando datos y simulando..." if lang=="ES" else "Downloading data and simulating..."):
         df, prices_m = simulate_dca_multi(
             assets=assets, monthly_contribution=float(aportacion), start=start, end=None,
-            rebalance_months=rb, display_currency=currency
+            rebalance_months=(0 if rebalanceo_opt == LANGS[lang]["reb_opt_none"] else int(rebalanceo_opt)),
+            display_currency=("EUR" if currency=="EUR" else "USD")
         )
         if df is None or df.empty:
-            st.warning(t(lang, "no_data_range", start=start, today=today)); st.stop()
-        st.success(t(lang, "sim_done"))
+            st.warning(LANGS[lang]["no_data_range"].format(start=start, today=today)); st.stop()
 
+    st.success(t(lang, "sim_done"))
     # KPIs
     col1, col2 = st.columns(2)
     with col1:
@@ -460,7 +424,7 @@ if run:
     hhi, neff = hhi_and_neff({a.ticker: a.weight for a in assets})
     st.write(t(lang, "hhi", hhi=hhi, neff=neff))
 
-    # Señales MA200
+    # Señales
     st.subheader(t(lang, "signals"))
     for a in assets:
         sig = trend_is_bearish(a.ticker, start, currency)
@@ -468,14 +432,13 @@ if run:
         elif sig is False: st.info(t(lang, "not_bearish", ticker=a.ticker))
         else: st.caption(f"{a.ticker}: {'No hay datos suficientes' if lang=='ES' else 'Insufficient data'} (MA200)")
 
-    # Gráficos (Plotly) con tema según claro/oscuro
+    # Gráficos
     st.subheader(t(lang, "evolution"))
     df_plot = df.copy(); df_plot["date"] = df_plot.index
     value_cols = [c for c in ["equity_value", "bond_value", "crypto_value"] if c in df_plot.columns]
-
-    brand_seq_light = ["#16A34A", "#0EA5E9", "#F59E0B"]
-    brand_seq_dark  = ["#34D399", "#60A5FA", "#FBBF24"]
-    seq = brand_seq_dark if dark else brand_seq_light
+    seq_light = ["#16A34A", "#0EA5E9", "#F59E0B"]
+    seq_dark  = ["#34D399", "#60A5FA", "#FBBF24"]
+    seq = seq_dark if dark else seq_light
     template = "plotly_dark" if dark else "plotly"
 
     fig_comp = px.line(df_plot, x="date", y=value_cols, template=template,
@@ -507,16 +470,16 @@ if run:
         y -= 1.2*cm; c.setFont("Helvetica", 11)
         c.drawString(x, y, (f"Fecha: {datetime.now():%Y-%m-%d %H:%M}" if lang=='ES' else f"Date: {datetime.now():%Y-%m-%d %H:%M}"))
         y -= 0.8*cm
-        line1 = (f"Perfil: {perfil}  |  Aportación mensual: {CURRENCY_SYMBOL}{aportacion:,.2f}  |  Rebalanceo: {rebalanceo_opt}"
+        line1 = (f"Perfil: {perfil}  |  Aportación: {('€' if currency=='EUR' else '$')}{aportacion:,.2f}  |  Rebalanceo: {rebalanceo_opt}"
                  if lang=='ES' else
-                 f"Profile: {perfil}  |  Monthly: {CURRENCY_SYMBOL}{aportacion:,.2f}  |  Rebalancing: {rebalanceo_opt}")
+                 f"Profile: {perfil}  |  Monthly: {('€' if currency=='EUR' else '$')}{aportacion:,.2f}  |  Rebalancing: {rebalanceo_opt}")
         c.drawString(x, y, line1); y -= 0.8*cm
         c.drawString(x, y, f"Moneda: {currency}  |  Pesos: {weights_pct}"); y -= 0.6*cm
         c.drawString(x, y, f"Tickers: {tickers}"); y -= 1.0*cm
         c.setFont("Helvetica-Bold", 12); c.drawString(x, y, ("Resultados" if lang=='ES' else "Results")); y -= 0.8*cm
         c.setFont("Helvetica", 11)
-        c.drawString(x, y, (f"Valor final: {CURRENCY_SYMBOL}{valor_final:,.2f}" if lang=='ES' else f"Final value: {CURRENCY_SYMBOL}{valor_final:,.2f}")); y -= 0.6*cm
-        c.drawString(x, y, (f"Aportado: {CURRENCY_SYMBOL}{aportado:,.2f}" if lang=='ES' else f"Contributed: {CURRENCY_SYMBOL}{aportado:,.2f}")); y -= 0.6*cm
+        c.drawString(x, y, (f"Valor final: {('€' if currency=='EUR' else '$')}{valor_final:,.2f}" if lang=='ES' else f"Final value: {('€' if currency=='EUR' else '$')}{valor_final:,.2f}")); y -= 0.6*cm
+        c.drawString(x, y, (f"Aportado: {('€' if currency=='EUR' else '$')}{aportado:,.2f}" if lang=='ES' else f"Contributed: {('€' if currency=='EUR' else '$')}{aportado:,.2f}")); y -= 0.6*cm
         c.drawString(x, y, f"CAGR: {stats['CAGR']*100:.2f}%  |  Vol: {stats['Vol']*100:.2f}%"); y -= 0.6*cm
         c.drawString(x, y, f"MaxDD: {stats['MaxDD']*100:.2f}%  |  Sharpe: {stats['Sharpe']:.2f}"); y -= 0.6*cm
         c.drawString(x, y, (f"Concentración (HHI): {hhi:.3f}  |  Nº efectivo: {neff:.2f}" if lang=='ES' else
@@ -534,10 +497,10 @@ if run:
     st.download_button(label=t(lang, "pdf_btn"), data=pdf_buffer.getvalue(),
                        file_name=f"{BRAND_NAME}_report_{datetime.now():%Y%m%d_%H%M}.pdf", mime="application/pdf")
 
-# ── Glosario & Feedback ─────────────────────────────────────────────
+# ─────────────────────────── GLOSARIO / FEEDBACK ─────────────────────
 st.divider()
-st.subheader(t(lang, "glossary"))
-with st.expander(t(lang, "glossary")):
+st.subheader("📖 " + t(lang, "glossary"))
+with st.expander(t(lang, "glossary"), expanded=False):
     st.markdown(t(lang, "glossary_text"))
     st.markdown("---")
     st.markdown(f"### {t(lang, 'table_howto_title')}")
