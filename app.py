@@ -173,17 +173,42 @@ currency = st.sidebar.selectbox(t(lang, "currency"), ["EUR", "USD"], index=0,
 CURRENCY_SYMBOL = "€" if currency == "EUR" else "$"
 dark = st.sidebar.toggle(t(lang, "darkmode"), value=False)
 
-# Header bonito con logo + slogan
-st.markdown(
-    f"""
-    <div style="display:flex; flex-direction:column; align-items:center; gap:.35rem; margin:.4rem 0 1rem 0;">
-        <img src="{LOGO_WORDMARK}" alt="{BRAND_NAME}" style="max-width:560px; width:60%; min-width:260px; height:auto;">
-        <div style="font-size:1.05rem; opacity:.85;">{t(lang,'slogan')}</div>
-    </div>
-    <hr style="margin:.4rem 0 1.2rem 0; opacity:.25;">
-    """,
-    unsafe_allow_html=True
-)
+# --- HEADER con logo (robusto para SVG) ---
+from pathlib import Path
+
+def render_brand_header():
+    svg_path = Path("assets/fincontrol_wordmark.svg")
+    png_path = Path("assets/fincontrol_wordmark.png")
+
+    if svg_path.exists():
+        svg = svg_path.read_text(encoding="utf-8")
+        st.markdown(
+            f"""
+            <div style="display:flex; flex-direction:column; align-items:center; gap:.35rem; margin:.4rem 0 1rem 0;">
+                <div style="max-width:560px; width:60%; min-width:260px; height:auto;">
+                    {svg}
+                </div>
+                <div style="font-size:1.05rem; opacity:.85;">{t(lang,'slogan')}</div>
+            </div>
+            <hr style="margin:.4rem 0 1.2rem 0; opacity:.25;">
+            """,
+            unsafe_allow_html=True
+        )
+    elif png_path.exists():
+        st.markdown(
+            f"""
+            <div style="display:flex; flex-direction:column; align-items:center; gap:.35rem; margin:.4rem 0 1rem 0;">
+                <img src="{png_path.as_posix()}" alt="{BRAND_NAME}" style="max-width:560px; width:60%; min-width:260px; height:auto;">
+                <div style="font-size:1.05rem; opacity:.85;">{t(lang,'slogan')}</div>
+            </div>
+            <hr style="margin:.4rem 0 1.2rem 0; opacity:.25%;">
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        st.warning("No se encontró el logo en `assets/`. Sube `fincontrol_wordmark.svg` o `fincontrol_wordmark.png`.")
+
+render_brand_header()
 st.info(t(lang, "demo_note"))
 
 # CSS para airear UI
@@ -392,17 +417,39 @@ def hhi_and_neff(weights):
     neff = float(1.0 / hhi) if hhi > 0 else 0.0
     return hhi, neff
 
-def trend_is_bearish(ticker, start, display_currency):
+def trend_is_bearish(ticker: str, start: str, display_currency: str) -> bool | None:
+    """
+    Devuelve:
+      True  -> bajista (precio < MA200)
+      False -> no bajista
+      None  -> datos insuficientes o NaN
+    """
     s = yahoo_prices(ticker, start)
-    if s.empty or len(s) < 200:
+    if s is None or s.empty:
         return None
+
+    # Convertir a moneda objetivo
     src_cur = get_currency_of_ticker(ticker)
     s = convert_series_to(s, src_cur, display_currency, start)
-    if len(s) < 200:
-        return None
-    ma200 = s.rolling(200).mean()
-    return bool(s.iloc[-1] < ma200.iloc[-1])
 
+    # Necesitamos al menos 200 datos para MA200
+    if s is None or len(s.dropna()) < 200:
+        return None
+
+    # MA200 y último precio como floats seguros
+    ma200 = s.rolling(200).mean()
+    last_px = s.iloc[-1]
+    last_ma = ma200.iloc[-1]
+
+    try:
+        last_px_f = float(last_px)
+        last_ma_f = float(last_ma)
+    except Exception:
+        return None
+    if np.isnan(last_px_f) or np.isnan(last_ma_f):
+        return None
+
+    return bool(last_px_f < last_ma_f)
 # ────────────────────────── CONTROLES (SIDEBAR) ──────────────────────
 # Estado inicial para poder rellenar con botones
 for k, v in {
