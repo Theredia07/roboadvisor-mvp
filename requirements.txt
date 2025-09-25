@@ -1,7 +1,11 @@
-streamlit
-pandas
-numpy
-yfinance
-matplotlib
-plotly
-reportlab
+# Base
+streamlit==1.37.1
+pandas==2.2.2
+numpy==1.26.4
+
+# Datos y gráficos
+yfinance==0.2.43
+plotly==5.24.1
+
+# Exportar PDF
+reportlab==4.2.2
